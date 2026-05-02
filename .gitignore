@@ -1,0 +1,12 @@
+tools/cloudflared
+*.tgz
+__pycache__/
+*.pyc
+.env
+.venv/
+
+# Local CRM / intake data (do not publish)
+data/leads.json
+
+# Generated or personal documents
+*.docx

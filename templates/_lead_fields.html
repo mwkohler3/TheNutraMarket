@@ -1,0 +1,146 @@
+{# Shared fields; lead must be a dict (use {} for new). #}
+<div class="intake-grid">
+  <label>
+    Company name *
+    <input type="text" name="company_name" value="{{ lead.get('company_name', '') }}" required />
+  </label>
+  <label>
+    Website
+    <input type="url" name="website" value="{{ lead.get('website', '') }}" placeholder="https://" />
+  </label>
+  <label>
+    Lane
+    <select name="lane">
+      <option value="">— Select —</option>
+      {% for opt in lane_options %}
+        {% if opt %}
+          <option value="{{ opt }}" {% if lead.get('lane') == opt %}selected{% endif %}>{{ opt }}</option>
+        {% endif %}
+      {% endfor %}
+    </select>
+  </label>
+  <label>
+    Region
+    <select name="region">
+      <option value="">— Select —</option>
+      {% for opt in region_options %}
+        {% if opt %}
+          <option value="{{ opt }}" {% if lead.get('region') == opt %}selected{% endif %}>{{ opt }}</option>
+        {% endif %}
+      {% endfor %}
+    </select>
+  </label>
+  <label class="wide">
+    Segment
+    <select name="segment">
+      <option value="">— Select —</option>
+      {% for opt in segment_options %}
+        <option value="{{ opt }}" {% if lead.get('segment') == opt %}selected{% endif %}>{{ opt }}</option>
+      {% endfor %}
+    </select>
+  </label>
+  <label>
+    How we found them
+    <select name="lead_source_type">
+      <option value="">— Select —</option>
+      {% for opt in source_type_options %}
+        <option value="{{ opt }}" {% if lead.get('lead_source_type') == opt %}selected{% endif %}>{{ opt }}</option>
+      {% endfor %}
+    </select>
+  </label>
+  <label class="wide">
+    Source detail (event name, list name, post URL, referrer…)
+    <input type="text" name="lead_source_detail" value="{{ lead.get('lead_source_detail', '') }}" placeholder="e.g. Vitafoods Europe 2026 exhibitor list" />
+  </label>
+  <label>
+    Contact name
+    <input type="text" name="contact_name" value="{{ lead.get('contact_name', '') }}" />
+  </label>
+  <label>
+    Contact title
+    <input type="text" name="contact_title" value="{{ lead.get('contact_title', '') }}" placeholder="e.g. Director, Raw Materials" />
+  </label>
+  <label>
+    Contact email
+    <input type="email" name="contact_email" value="{{ lead.get('contact_email', '') }}" />
+  </label>
+  <label>
+    Contact phone / WhatsApp
+    <input type="text" name="contact_phone" value="{{ lead.get('contact_phone', '') }}" />
+  </label>
+  <label>
+    ICP score (1 = weak, 5 = dream)
+    <select name="icp_score">
+      {% for s in icp_scores %}
+        <option value="{{ s }}" {% if (lead.get('icp_score') or '') == s %}selected{% endif %}>{% if s %}{{ s }}{% else %}—{% endif %}</option>
+      {% endfor %}
+    </select>
+  </label>
+  <label>
+    Est. volume / relationship size
+    <select name="est_volume_band">
+      <option value="">— Unknown —</option>
+      {% for b in volume_bands %}
+        <option value="{{ b }}" {% if lead.get('est_volume_band') == b %}selected{% endif %}>{{ b }}</option>
+      {% endfor %}
+    </select>
+  </label>
+  <label>
+    Assigned rep
+    <select name="sales_rep">
+      {% for rep in reps %}
+        <option value="{{ rep }}" {% if lead.get('sales_rep') == rep %}selected{% endif %}>{{ rep }}</option>
+      {% endfor %}
+    </select>
+  </label>
+  <label>
+    Stage
+    <select name="stage">
+      {% for stage in stages %}
+        <option value="{{ stage }}" {% if lead.get('stage') == stage %}selected{% endif %}>{{ stage }}</option>
+      {% endfor %}
+    </select>
+  </label>
+  <label>
+    Priority
+    <select name="priority">
+      <option {% if lead.get('priority') == 'High' %}selected{% endif %}>High</option>
+      <option {% if lead.get('priority', 'Medium') == 'Medium' %}selected{% endif %}>Medium</option>
+      <option {% if lead.get('priority') == 'Low' %}selected{% endif %}>Low</option>
+    </select>
+  </label>
+  {% if show_loss_reason %}
+  <label class="wide">
+    Loss reason (if stage = Lost)
+    <select name="loss_reason">
+      {% for r in loss_reasons %}
+        <option value="{{ r }}" {% if lead.get('loss_reason') == r %}selected{% endif %}>{% if r %}{{ r }}{% else %}—{% endif %}</option>
+      {% endfor %}
+    </select>
+  </label>
+  {% endif %}
+  <label class="wide">
+    Categories (what they buy OR what they sell)
+    <textarea name="categories_sourcing" rows="2" placeholder="e.g. bulk monohydrate for powders + gummies; or supplier: FOB, mesh, annual MT offer">{{ lead.get('categories_sourcing', '') }}</textarea>
+  </label>
+  <label>
+    Ingredient / format focus (comma separated)
+    <input type="text" name="ingredient_focus" value="{% if lead.get('ingredient_focus') %}{{ lead.ingredient_focus | join(', ') }}{% endif %}" placeholder="e.g. collagen peptides, stick packs, shaker bottles" />
+  </label>
+  <label class="wide">
+    MOQ / lead time / certs (suppliers) or incumbent notes (buyers)
+    <textarea name="moq_notes" rows="2" placeholder="MOQ 500kg, COA, FOB…">{{ lead.get('moq_notes', '') }}</textarea>
+  </label>
+  <label class="wide">
+    Next action (dated if possible)
+    <input type="text" name="next_action" value="{{ lead.get('next_action', '') }}" />
+  </label>
+  <label class="wide">
+    Last call outcome (summary)
+    <input type="text" name="last_call_outcome" value="{{ lead.get('last_call_outcome', '') }}" />
+  </label>
+  <label class="wide">
+    Notes
+    <textarea name="notes" rows="5" placeholder="Pain, process, objections…">{{ lead.get('notes', '') }}</textarea>
+  </label>
+</div>

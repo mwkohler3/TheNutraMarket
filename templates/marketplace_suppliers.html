@@ -1,0 +1,56 @@
+{% extends "marketplace_layout.html" %}
+{% block marketplace_title %}Suppliers{% endblock %}
+
+{% block marketplace_body %}
+  {% if request.args.get('checkout') == 'canceled' %}
+    <p class="helper-text marketplace-checkout-notice">Checkout was canceled—no card was charged. Subscribe again when you are ready.</p>
+  {% endif %}
+  <section class="hero marketplace-hero marketplace-hero--compact">
+    <p class="marketplace-kicker">Supply side</p>
+    <h2>Subscribe &amp; list inventory</h2>
+    <p class="marketplace-lead">
+      An active subscription is required to post listings. Buyers see anonymous codes until they commit under the
+      <a href="{{ url_for('marketplace_terms') }}">brokered transaction terms</a>.
+    </p>
+  </section>
+
+  <section class="panel marketplace-panel marketplace-subscribe">
+    <h3>Supplier subscription (required to list)</h3>
+    <p class="helper-text">
+      <strong>${{ supplier_subscription_monthly }} / month</strong> per supplier account. Use the same company name and email when you create listings.
+      {% if stripe_checkout_enabled %}
+        You will be redirected to <strong>Stripe Checkout</strong> to enter card details; Stripe charges the card automatically each billing cycle.
+        Configure webhooks with <code>STRIPE_WEBHOOK_SECRET</code> so cancellations and failed payments update access.
+      {% else %}
+        <strong>Demo mode:</strong> no card is charged until you set <code>STRIPE_SECRET_KEY</code> and
+        <code>STRIPE_SUPPLIER_PRICE_ID</code> on the server.
+      {% endif %}
+    </p>
+    <form method="post" action="{{ url_for('supplier_subscribe') }}" class="grid-form">
+      <label>Company name<input type="text" name="company_name" required /></label>
+      <label>Contact email<input type="email" name="contact_email" required /></label>
+      <label>Contact name (optional)<input type="text" name="contact_name" /></label>
+      <label class="wide">
+        <input type="checkbox" name="ack_amount" value="yes" required />
+        I agree to the ${{ supplier_subscription_monthly }}/month supplier subscription to post inventory on the marketplace.
+      </label>
+      <button type="submit" class="btn">Start supplier subscription</button>
+    </form>
+  </section>
+
+  <section class="panel marketplace-panel">
+    <h3>New ingredient listing</h3>
+    <p class="helper-text">Requires an active supplier subscription and COA reference. Contact email must match your subscription.</p>
+    <form method="post" action="{{ url_for('add_marketplace_listing') }}" class="grid-form">
+      <label>Supplier company<input type="text" name="supplier_company" required /></label>
+      <label>Supplier contact email<input type="email" name="supplier_contact_email" required /></label>
+      <label>Ingredient<input type="text" name="ingredient" placeholder="Creatine monohydrate" required /></label>
+      <label>Price per kg (USD)<input type="number" step="0.01" min="0" name="price_per_kg" required /></label>
+      <label>Quantity (kg)<input type="number" step="0.01" min="0" name="quantity_kg" required /></label>
+      <label>COA file / reference<input type="text" name="coa_document" placeholder="coa-lot-2026-04.pdf" required /></label>
+      <label>Expiry date (optional)<input type="date" name="expires_on" /></label>
+      <label class="wide">Notes<input type="text" name="notes" placeholder="COA available, lot details, shipping region..." /></label>
+      <button type="submit" class="btn">Create listing</button>
+    </form>
+  </section>
+{% endblock %}

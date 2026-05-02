@@ -1,0 +1,130 @@
+{% extends "marketplace_layout.html" %}
+{% block marketplace_title %}Agreement{% endblock %}
+
+{% block marketplace_body %}
+  <section class="hero marketplace-hero marketplace-hero--compact">
+    <p class="marketplace-kicker">Legal</p>
+    <h2>Brokered marketplace transaction agreement</h2>
+    <p class="marketplace-lead">
+      Version <strong>{{ agreement_version }}</strong>. If you arrived here without starting a commit, use the links in the nav—there is no pending deal to sign.
+      Signed agreements are delivered to the platform for review; <strong>we do not execute before your counterparty</strong> completes their part.
+    </p>
+  </section>
+
+  {% if not pending %}
+    <section class="panel marketplace-panel">
+      <p class="helper-text">
+        To unlock a supplier, go to <a href="{{ url_for('marketplace_buy') }}">Buyers</a>, choose a listing, and click <strong>Continue to agreement</strong>.
+        You can still read this document for reference.
+      </p>
+    </section>
+
+    <article class="panel marketplace-panel marketplace-legal-body" id="contractual-terms">
+      <h3 class="sr-only">Contractual terms</h3>
+      {% include "marketplace/_terms_prose.html" %}
+    </article>
+  {% else %}
+    <section class="panel marketplace-panel marketplace-pending-commit">
+      <h3>Pending commitment</h3>
+      <p class="helper-text">
+        Buyer: <strong>{{ pending.buyer_company }}</strong> ({{ pending.buyer_contact_email }})<br />
+        {% if listing_preview %}
+          Listing: <strong>{{ listing_preview.ingredient }}</strong> · public ref {{ listing_preview.supplier_public_code }} ·
+          ${{ "%.2f"|format(listing_preview.price_per_kg) }}/kg
+        {% endif %}
+      </p>
+      <p class="helper-text">
+        <a href="{{ url_for('commit_marketplace_cancel') }}">Cancel</a> and return to Buyers without recording a commitment.
+      </p>
+    </section>
+
+    <section class="panel marketplace-panel marketplace-terms-gate-panel">
+      <h3>Step 1 — Open the agreement</h3>
+      <p class="helper-text">
+        Check the box below to confirm you are ready to review the <strong>full contractual terms</strong> and complete your signature block.
+      </p>
+      <label class="marketplace-terms-gate-label">
+        <input type="checkbox" id="ag-proceed-ack" autocomplete="off" />
+        I am authorized to open the contractual terms and sign on behalf of my company.
+      </label>
+    </section>
+
+    <dialog class="marketplace-agreement-dialog" id="ag-proceed-dialog" aria-labelledby="ag-proceed-dialog-title">
+      <div class="marketplace-agreement-dialog__inner">
+        <h3 id="ag-proceed-dialog-title">Agreement execution</h3>
+        <p>
+          You will review the binding terms below and enter your effective date, name, title, and electronic signature.
+          Your submission is sent to the platform for processing.
+        </p>
+        <p>
+          <strong>We never execute this agreement before your counterparty</strong> has completed their signing process.
+          The platform may contact you if additional steps are required.
+        </p>
+        <form method="dialog" class="marketplace-agreement-dialog__actions">
+          <button type="submit" class="btn btn-secondary" value="cancel">Go back</button>
+          <button type="submit" class="btn" value="ok">Continue to terms</button>
+        </form>
+      </div>
+    </dialog>
+
+    <div id="marketplace-terms-reveal" class="marketplace-terms-reveal" hidden>
+      <article class="panel marketplace-panel marketplace-legal-body" id="contractual-terms">
+        <h3 class="sr-only">Contractual terms</h3>
+        {% include "marketplace/_terms_prose.html" %}
+      </article>
+
+      <section class="panel marketplace-panel" id="marketplace-agreement-sign-block">
+        <h3>Step 2 — Sign and submit</h3>
+        <p class="helper-text">
+          Enter the effective date you propose, your name and title as they should appear on the agreement, and sign by typing your full legal name.
+          This constitutes your electronic signature under these terms.
+        </p>
+        <form method="post" action="{{ url_for('commit_marketplace_confirm') }}" class="grid-form">
+          <label>Effective date<input type="date" name="effective_date" required /></label>
+          <label class="wide">Full legal name (signer)<input type="text" name="signer_name" required autocomplete="name" /></label>
+          <label class="wide">Title<input type="text" name="signer_title" required placeholder="e.g. VP Procurement" /></label>
+          <label class="wide">
+            Electronic signature (type your full legal name)<input type="text" name="signature" required autocomplete="off" />
+          </label>
+          <label class="wide">
+            <input type="checkbox" name="accept_terms" value="yes" required />
+            I am authorized to bind my company. I accept the brokered marketplace transaction agreement above (version
+            <code>{{ agreement_version }}</code>) and understand a {{ summary.vig_rate_pct }}% brokerage fee applies on closed deals reported through the platform.
+          </label>
+          <button type="submit" class="btn">Submit signed agreement</button>
+        </form>
+      </section>
+    </div>
+
+    <script>
+    (function () {
+      var chk = document.getElementById("ag-proceed-ack");
+      var dlg = document.getElementById("ag-proceed-dialog");
+      var reveal = document.getElementById("marketplace-terms-reveal");
+      if (!chk || !dlg || !reveal) return;
+      chk.addEventListener("change", function () {
+        if (!chk.checked) {
+          reveal.hidden = true;
+          return;
+        }
+        if (typeof dlg.showModal === "function") dlg.showModal();
+        else {
+          reveal.hidden = false;
+          var el = document.getElementById("contractual-terms");
+          if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
+        }
+      });
+      dlg.addEventListener("close", function () {
+        if (dlg.returnValue !== "ok") {
+          chk.checked = false;
+          reveal.hidden = true;
+          return;
+        }
+        reveal.hidden = false;
+        var el = document.getElementById("contractual-terms");
+        if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
+      });
+    })();
+    </script>
+  {% endif %}
+{% endblock %}

@@ -1,0 +1,20 @@
+[
+  {
+    "id": "demo-commit-001",
+    "listing_id": "demo-listing-creatine-001",
+    "buyer_company": "Peak Performance Labs",
+    "buyer_contact_email": "procurement@peaklabs.example",
+    "agreement_accepted": true,
+    "agreement_version": "v1-brokered-marketplace-terms",
+    "agreement_accepted_at": "2026-04-28T13:20:44"
+  },
+  {
+    "id": "9d974e28-5fe6-461b-aa9e-f246fd39c962",
+    "listing_id": "demo-listing-collagen-001",
+    "buyer_company": "SDC",
+    "buyer_contact_email": "sdc@gmail.com",
+    "agreement_accepted": true,
+    "agreement_version": "v1-brokered-marketplace-terms",
+    "agreement_accepted_at": "2026-05-02T10:09:33"
+  }
+]

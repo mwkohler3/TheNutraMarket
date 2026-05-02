@@ -1,0 +1,138 @@
+{% extends "base.html" %}
+
+{% block title %}Sales playbook — marketplace outreach{% endblock %}
+
+{% block content %}
+  <article class="playbook">
+    <header class="playbook-hero">
+      <p class="playbook-kicker">Internal · global marketplace playbook</p>
+      <h2>Sales playbook: buyer outreach and supplier outreach</h2>
+      <p class="playbook-lead">
+        {{ wedge_phase_copy }}
+        We make money when <strong>verified marketplace deals close</strong> between buyers and suppliers.
+        Log accounts in <a href="{{ url_for('lead_intake') }}">Lead intake</a>; log every touch on the <a href="{{ url_for('index') }}">Dashboard</a> → <strong>full record</strong>.
+        Focus outreach on fit, speed, documentation quality, and deal execution.
+      </p>
+    </header>
+
+    <nav class="playbook-toc" aria-label="On this page">
+      <strong>Jump to</strong>
+      <a href="#buyer">Version 1: Buyer outreach</a>
+      <a href="#supplier">Version 2: Supplier outreach</a>
+      <a href="#targets">Activity targets</a>
+      <a href="#handoff">Deal handoff and close</a>
+    </nav>
+
+    <section id="buyer" class="playbook-section">
+      <h3>Version 1: Brand / manufacturer buyer outreach</h3>
+      <p>Goal: identify active buyers for ingredients, packaging components, and merchandise, then convert to qualified demand with clear specs and timelines.</p>
+      <h4>Buyer qualification checklist</h4>
+      <ol>
+        <li>What are they sourcing right now (ingredient, packaging, merchandise SKU)?</li>
+        <li>Spec requirements: grade, mesh, dimensions, materials, compliance requirements.</li>
+        <li>Quantity and cadence: trial, monthly run-rate, annual band.</li>
+        <li>Timeline: next PO date and urgency.</li>
+        <li>Commercial guardrails: target price range, region, incoterms.</li>
+        <li>Documentation requirements: COA, GMP, allergen, testing, artwork compliance.</li>
+      </ol>
+      <h4>Email script — buyer cold outreach</h4>
+      <pre class="copy-block">Subject: sourcing support for [ingredient/packaging/merchandise] at [Company]
+
+Hi [First],
+
+I’m [Your name] with [Marketplace]. We help brands and manufacturers source vetted supply across ingredients, packaging, and branded merchandise with clear specs, MOQ, and documentation.
+
+Are you the right contact for procurement or raw materials at [Company]? If yes, I can share matched options based on your current requirements.
+
+Thanks,
+[Your name]</pre>
+      <h4>Follow-up script — buyer</h4>
+      <pre class="copy-block">Subject: quick follow-up on sourcing at [Company]
+
+Hi [First],
+
+Following up in case [ingredient/packaging/merchandise] sourcing is active this month. If useful, I can send 2–3 supplier matches aligned to your spec and quantity targets.
+
+[Your name]</pre>
+    </section>
+
+    <section id="supplier" class="playbook-section">
+      <h3>Version 2: Supplier outreach</h3>
+      <p>Goal: onboard suppliers with real inventory and complete documentation, then route matched demand while protecting identities until buyer commitment.</p>
+      <h4>Supplier qualification checklist</h4>
+      <ol>
+        <li>What SKUs are available now (ingredient lots, packaging runs, merchandise stock)?</li>
+        <li>MOQ, lead time, location, shipping lanes.</li>
+        <li>COA and supporting docs availability (required for listings).</li>
+        <li>Pricing structure and validity window.</li>
+        <li>Near-expiry or overstock status and urgency.</li>
+        <li>Commercial terms: payment terms, sample policy, refund/dispute process.</li>
+      </ol>
+      <h4>Email script — supplier onboarding</h4>
+      <pre class="copy-block">Subject: list your inventory to qualified buyers
+
+Hi [First],
+
+I’m [Your name] with [Marketplace]. We help suppliers move ingredients, packaging, and merchandise inventory by matching listings to qualified buyer demand.
+
+If you can share active SKUs, MOQ, pricing, and COA docs, we can start presenting your inventory to matching buyers immediately.
+
+Best,
+[Your name]</pre>
+      <h4>Follow-up script — supplier</h4>
+      <pre class="copy-block">Subject: inventory listing follow-up
+
+Hi [First],
+
+Quick follow-up. If you have overstock or near-expiry inventory, we can list it and route matched buyers fast. COA-backed listings get priority response.
+
+[Your name]</pre>
+    </section>
+
+    <section id="targets" class="playbook-section">
+      <h3>Activity targets (per rep)</h3>
+      <div class="table-responsive">
+      <table class="playbook-table">
+        <thead>
+          <tr>
+            <th>Metric</th>
+            <th>Daily target</th>
+            <th>Definition</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Meaningful touches</td>
+            <td><strong>25</strong></td>
+            <td>Buyer or supplier outreach with a clear sourcing/listing ask.</td>
+          </tr>
+          <tr>
+            <td>New qualified accounts</td>
+            <td><strong>8</strong></td>
+            <td>Complete lane, region, contact, and product focus data.</td>
+          </tr>
+          <tr>
+            <td>Match-ready opportunities</td>
+            <td><strong>2</strong></td>
+            <td>Documented buyer requirement + supplier option with COA and commercial fit.</td>
+          </tr>
+        </tbody>
+      </table>
+      </div>
+    </section>
+
+    <section id="handoff" class="playbook-section playbook-strategy">
+      <h3>Deal handoff and close rules</h3>
+      <ul>
+        <li>Supplier listing must include COA reference before active matching.</li>
+        <li>Supplier identity stays hidden until buyer commits and accepts terms.</li>
+        <li>Deal is marked closed only after commercial confirmation and logged gross value.</li>
+        <li>Brokerage (e.g. 5% on closed deals) and supplier subscription billing are captured per platform terms.</li>
+      </ul>
+    </section>
+
+    <footer class="playbook-footer">
+      <p><a class="btn" href="{{ url_for('lead_intake') }}">Lead intake</a> <a class="btn btn-secondary" href="{{ url_for('index') }}">Dashboard</a></p>
+    </footer>
+  </article>
+{% endblock %}

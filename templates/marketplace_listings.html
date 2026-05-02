@@ -1,0 +1,49 @@
+{% extends "marketplace_layout.html" %}
+{% block marketplace_title %}Listings{% endblock %}
+
+{% block marketplace_body %}
+  <section class="hero marketplace-hero marketplace-hero--compact">
+    <p class="marketplace-kicker">Inventory</p>
+    <h2>Active listings</h2>
+    <p class="marketplace-lead">
+      This catalog never shows legal supplier names—only anonymous codes (SX-…) and ratings. After you commit under the
+      <a href="{{ url_for('marketplace_terms') }}">agreement</a>, your match row on
+      <a href="{{ url_for('marketplace_buy') }}">Buyers</a> unlocks the supplier for <strong>your</strong> buyer email only.
+    </p>
+  </section>
+
+  <section class="panel marketplace-panel">
+    {% if listings %}
+      <div class="table-responsive">
+      <table class="playbook-table marketplace-listings-table">
+        <thead>
+          <tr>
+            <th>Ingredient</th>
+            <th>Supplier (masked)</th>
+            <th>Buyer rating</th>
+            <th>COA</th>
+            <th>Price / kg</th>
+            <th>Quantity kg</th>
+            <th>Expiry</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for listing in listings %}
+            <tr>
+              <td>{{ listing.ingredient }}</td>
+              <td>{{ listing.supplier_public_name }}</td>
+              <td class="marketplace-rating-cell">{{ listing.supplier_rating_display }}</td>
+              <td>{{ listing.coa_document }}</td>
+              <td>${{ "%.2f"|format(listing.price_per_kg) }}</td>
+              <td>{{ "%.0f"|format(listing.quantity_kg) }}</td>
+              <td>{{ listing.expires_on or "N/A" }}</td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      </div>
+    {% else %}
+      <p>No listings yet. Suppliers can post from the <a href="{{ url_for('marketplace_suppliers') }}">Suppliers</a> page.</p>
+    {% endif %}
+  </section>
+{% endblock %}

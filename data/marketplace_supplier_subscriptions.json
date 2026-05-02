@@ -1,0 +1,35 @@
+[
+  {
+    "id": "3c7656f8-99f5-4c8a-95f9-4344b87a0dd4",
+    "company_name": "Nordic Actives BV",
+    "contact_name": "",
+    "contact_email": "supply@nordicactives.example",
+    "monthly_amount_usd": 100.0,
+    "billing_provider": "manual",
+    "public_supplier_code": "SX-NORD01",
+    "status": "active",
+    "started_at": "2026-05-02T10:30:25"
+  },
+  {
+    "id": "e251fc5c-4095-4c31-946b-1234776b6305",
+    "company_name": "Atlas BioIngredients",
+    "contact_name": "",
+    "contact_email": "inventory@atlasbio.example",
+    "monthly_amount_usd": 100.0,
+    "billing_provider": "manual",
+    "public_supplier_code": "SX-ATLAS1",
+    "status": "active",
+    "started_at": "2026-05-02T10:30:25"
+  },
+  {
+    "id": "b8611b57-bd3b-4dd3-aa8e-c78ca0cbcad8",
+    "company_name": "sdc",
+    "contact_name": "SDC",
+    "contact_email": "sdc@gmail.com",
+    "monthly_amount_usd": 100.0,
+    "billing_provider": "manual",
+    "status": "active",
+    "started_at": "2026-05-02T10:37:44",
+    "public_supplier_code": "SX-D3B360"
+  }
+]

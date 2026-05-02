@@ -1,0 +1,9 @@
+{% extends "base.html" %}
+{% block title %}{% block marketplace_title %}Marketplace{% endblock %} — Ingredient exchange{% endblock %}
+
+{% block content %}
+  <div class="marketplace-page">
+    {% include "marketplace/_subnav.html" %}
+    {% block marketplace_body %}{% endblock %}
+  </div>
+{% endblock %}

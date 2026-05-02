@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <meta name="color-scheme" content="light dark" />
+    <meta name="theme-color" content="#1f5fff" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#0f172a" media="(prefers-color-scheme: dark)" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <meta name="format-detection" content="telephone=no" />
+    <title>{% block title %}Nutraceutical marketplace platform{% endblock %}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}" />
+  </head>
+  <body>
+    <header class="topbar">
+      <div class="topbar-brand">
+        <h1>Nutraceutical Marketplace Platform</h1>
+        <p class="topbar-wedge">{{ wedge_phase_copy }}</p>
+      </div>
+      <p class="topbar-mobile-hint" aria-hidden="true">Swipe nav →</p>
+      <nav class="topbar-nav" aria-label="Main navigation">
+        <a href="{{ url_for('index') }}">Dashboard</a>
+        <a href="{{ url_for('marketplace') }}">Marketplace</a>
+        <a href="{{ url_for('buyers') }}">Buyer leads</a>
+        <a href="{{ url_for('suppliers') }}">Supplier leads</a>
+        <a href="{{ url_for('lead_intake') }}">Lead intake</a>
+        <a href="{{ url_for('sell_sheet') }}">Sell sheet</a>
+        <a href="{{ url_for('sales_playbook') }}">Sales playbook</a>
+        <a href="{{ url_for('legal_agreements') }}">Legal agreements</a>
+      </nav>
+    </header>
+
+    <main class="container">
+      {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+          <section class="flash-wrap">
+            {% for category, message in messages %}
+              <p class="flash {{ category }}">{{ message }}</p>
+            {% endfor %}
+          </section>
+        {% endif %}
+      {% endwith %}
+      {% block content %}{% endblock %}
+    </main>
+    {% include "floating_assistant.html" %}
+    {% include "floating_assistant_script.html" %}
+  </body>
+</html>

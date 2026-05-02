@@ -1,0 +1,81 @@
+{% extends "base.html" %}
+
+{% block title %}Marketplace sell sheet{% endblock %}
+
+{% block content %}
+  <article class="sell-sheet">
+    <header class="sell-sheet-hero">
+      <p class="sell-sheet-kicker">Nutraceutical marketplace one-pager</p>
+      <h2>Move inventory faster. Source smarter. Close deals with confidence.</h2>
+      <p>
+        Our platform connects nutraceutical suppliers, brands, manufacturers, and distributors for ingredients, packaging, and merchandise.
+        Listings are matched in real time, documentation is required, and supplier identity is protected until buyer commitment.
+      </p>
+      <p class="sell-sheet-meta">
+        Model: <strong>${{ supplier_subscription_monthly }}/month</strong> supplier subscription to list inventory, plus
+        <strong>{{ marketplace_vig_pct }}% brokerage</strong> on closed deals.
+      </p>
+    </header>
+
+    <section class="sell-sheet-grid">
+      <section class="sell-card">
+        <h3>For Brands &amp; Manufacturers</h3>
+        <ul>
+          <li>Access qualified supplier inventory in one place.</li>
+          <li>Find discounted overstock and near-expiry opportunities.</li>
+          <li>Filter by ingredient/spec, price, quantity, and timeline fit.</li>
+          <li>Review COA-backed listings before committing.</li>
+          <li>Reduce sourcing cycle time and improve margin.</li>
+        </ul>
+      </section>
+
+      <section class="sell-card">
+        <h3>For Suppliers</h3>
+        <ul>
+          <li>Monetize excess inventory and aging lots faster.</li>
+          <li>Get matched to active buyers with live demand.</li>
+          <li>Protect your account relationships via blind listing mode.</li>
+          <li>Control MOQ, price floors, and regional eligibility.</li>
+          <li>Standardize documentation and speed buyer trust.</li>
+          <li>Simple monthly subscription unlocks listing tools and buyer matching.</li>
+        </ul>
+      </section>
+    </section>
+
+    <section class="sell-card">
+      <h3>Community</h3>
+      <p>
+        Built-in procurement forum so purchasing agents and suppliers can share sourcing context, logistics notes, and category discussion—
+        while sensitive deal identity stays gated until commitment.
+      </p>
+    </section>
+
+    <section class="sell-card">
+      <h3>How It Works</h3>
+      <ol>
+        <li><strong>Supplier subscribes</strong> (monthly) then <strong>lists inventory</strong> with required COA.</li>
+        <li><strong>Buyers receive matched alerts</strong> for ingredients, packaging, or merchandise they want.</li>
+        <li><strong>Buyer commits</strong> and accepts transaction terms to unlock supplier details.</li>
+        <li><strong>Deal closes</strong> and brokerage is captured on completed transactions.</li>
+      </ol>
+    </section>
+
+    <section class="sell-sheet-grid">
+      <section class="sell-card">
+        <h3>Why Buyers Choose Us</h3>
+        <p class="sell-sheet-stat">Lower COGS + faster fulfillment</p>
+        <p>Get quality-checked options quickly, especially when urgent supply is needed.</p>
+      </section>
+      <section class="sell-card">
+        <h3>Why Suppliers Choose Us</h3>
+        <p class="sell-sheet-stat">Inventory liquidity + deal velocity</p>
+        <p>Turn dormant stock into revenue while maintaining pricing control and confidentiality.</p>
+      </section>
+    </section>
+
+    <footer class="sell-sheet-footer">
+      <p><strong>Best fit for:</strong> supplement brands, CMOs/manufacturers, distributors/importers, ingredient suppliers, packaging suppliers, and branded merchandise partners.</p>
+      <p><strong>Next step:</strong> book a 15-minute onboarding call to activate your first listing or buyer watchlist.</p>
+    </footer>
+  </article>
+{% endblock %}

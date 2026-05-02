@@ -1,0 +1,7 @@
+<nav class="marketplace-subnav" aria-label="Marketplace sections">
+  <a href="{{ url_for('marketplace') }}" class="marketplace-subnav-link {% if marketplace_nav_active == 'marketplace' %}is-active{% endif %}">Marketplace</a>
+  <a href="{{ url_for('marketplace_buy') }}" class="marketplace-subnav-link {% if marketplace_nav_active == 'buy' %}is-active{% endif %}">Buyers</a>
+  <a href="{{ url_for('marketplace_suppliers') }}" class="marketplace-subnav-link {% if marketplace_nav_active == 'suppliers' %}is-active{% endif %}">Suppliers</a>
+  <a href="{{ url_for('marketplace_community') }}" class="marketplace-subnav-link {% if marketplace_nav_active == 'community' %}is-active{% endif %}">Community</a>
+  <a href="{{ url_for('marketplace_terms') }}" class="marketplace-subnav-link {% if marketplace_nav_active == 'terms' %}is-active{% endif %}">Agreement</a>
+</nav>

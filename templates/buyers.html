@@ -1,0 +1,74 @@
+{% extends "base.html" %}
+
+{% block title %}Buyer leads — target accounts{% endblock %}
+
+{% block content %}
+  <section class="hero">
+    <h2>Buyer leads (target accounts)</h2>
+    <p>These are demand-side accounts to sell into: brands, CMOs/manufacturers, private label, and distributors.</p>
+  </section>
+
+  <section class="stats-grid">
+    <article class="stat-card"><h3>Total Buyer Leads</h3><p>{{ summary.total }}</p></article>
+    <article class="stat-card"><h3>New</h3><p>{{ summary.new }}</p></article>
+    <article class="stat-card"><h3>Qualified</h3><p>{{ summary.qualified }}</p></article>
+    <article class="stat-card"><h3>Active Calls</h3><p>{{ summary.active }}</p></article>
+    <article class="stat-card"><h3>Won</h3><p>{{ summary.won }}</p></article>
+    <article class="stat-card"><h3>Lost</h3><p>{{ summary.lost }}</p></article>
+  </section>
+
+  <section>
+    {% if leads %}
+      <div class="cards">
+        {% for lead in leads %}
+          <article class="card">
+            <h4><a href="{{ url_for('lead_detail', lead_id=lead.id) }}">{{ lead.company_name }}</a></h4>
+            <p class="card-meta">
+              {% if lead.get("lane") %}<span>{{ lead.get("lane") }}</span>{% endif %}
+              {% if lead.get("region") %}<span>{{ lead.get("region") }}</span>{% endif %}
+              {% if lead.get("icp_score") %}<span>ICP {{ lead.get("icp_score") }}</span>{% endif %}
+            </p>
+            <p><strong>Website:</strong> <a href="{{ lead.get('website') }}" target="_blank">{{ lead.get("website") or "N/A" }}</a></p>
+            <p><strong>Source:</strong> {{ lead.source }}</p>
+            <p><strong>Ingredient focus:</strong> {{ lead.ingredient_focus | join(", ") if lead.ingredient_focus else "Unknown" }}</p>
+            <p><strong>Last call:</strong> {{ lead.last_call_outcome or "No calls logged yet" }}</p>
+            <p><strong>Next action:</strong> {{ lead.next_action or "Not set" }}</p>
+
+            <form method="post" action="{{ url_for('update_lead', lead_id=lead.id) }}" class="inline-form">
+              <label>Stage
+                <select name="stage">
+                  {% for stage in stages %}
+                    <option value="{{ stage }}" {{ "selected" if lead.stage == stage else "" }}>{{ stage }}</option>
+                  {% endfor %}
+                </select>
+              </label>
+              <label>Rep
+                <select name="sales_rep">
+                  {% for rep in reps %}
+                    <option value="{{ rep }}" {{ "selected" if lead.sales_rep == rep else "" }}>{{ rep }}</option>
+                  {% endfor %}
+                </select>
+              </label>
+              <label>Priority
+                <select name="priority">
+                  <option {{ "selected" if lead.priority == "High" else "" }}>High</option>
+                  <option {{ "selected" if lead.priority == "Medium" else "" }}>Medium</option>
+                  <option {{ "selected" if lead.priority == "Low" else "" }}>Low</option>
+                </select>
+              </label>
+              <label>Next action
+                <input type="text" name="next_action" value="{{ lead.next_action or '' }}" />
+              </label>
+              <label class="wide">Add note
+                <textarea name="notes" rows="2" placeholder="Add latest sales intel..."></textarea>
+              </label>
+              <button class="btn" type="submit">Save</button>
+            </form>
+          </article>
+        {% endfor %}
+      </div>
+    {% else %}
+      <p>No buyer leads yet.</p>
+    {% endif %}
+  </section>
+{% endblock %}

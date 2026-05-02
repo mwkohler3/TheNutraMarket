@@ -1,0 +1,41 @@
+<aside
+  class="global-floating-assistant"
+  id="marketplace-assistant"
+  aria-label="Talk to our AI assistant"
+>
+  <div class="global-floating-assistant__inner">
+    <div class="global-floating-assistant__head">
+      <h3 class="global-floating-assistant__title">Talk to our AI Assistant</h3>
+      <button
+        type="button"
+        class="global-floating-assistant__toggle"
+        id="mp-assistant-toggle"
+        aria-expanded="true"
+        aria-controls="mp-chat-panel"
+        aria-label="Hide AI assistant"
+      >
+        <span class="global-floating-assistant__toggle-expanded" aria-hidden="true">
+          <svg class="global-floating-assistant__icon" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+            <path fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" d="M9 6l6 6-6 6" />
+          </svg>
+        </span>
+        <span class="global-floating-assistant__toggle-collapsed" aria-hidden="true">
+          <svg class="global-floating-assistant__icon" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+            <path fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" d="M15 18l-6-6 6-6" />
+          </svg>
+        </span>
+      </button>
+    </div>
+    <div class="global-floating-assistant__panel" id="mp-chat-panel">
+      <input
+        type="text"
+        id="mp-chat-input"
+        class="global-floating-assistant__input"
+        placeholder="e.g. What is the brokerage fee?"
+        autocomplete="off"
+        aria-label="Message for AI assistant"
+      />
+      <div id="mp-chat-log" class="global-floating-assistant__log" aria-live="polite"></div>
+    </div>
+  </div>
+</aside>

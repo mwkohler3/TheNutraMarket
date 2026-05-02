@@ -1,0 +1,78 @@
+{% extends "base.html" %}
+
+{% block title %}{{ lead.get("company_name", "Lead") }} — full record{% endblock %}
+
+{% block content %}
+  <p class="breadcrumb"><a href="{{ url_for('index') }}">← Dashboard</a> · <a href="{{ url_for('lead_intake') }}">New intake</a> · <a href="{{ url_for('sales_playbook') }}">Playbook</a></p>
+
+  <section class="hero">
+    <h2>{{ lead.get("company_name", "Lead") }}</h2>
+    <p class="wedge-inline"><strong>{{ wedge_product }}</strong> — {{ wedge_phase_copy }}</p>
+    {% if lead.get("value_pitch") %}
+      <p class="value-pitch-line"><strong>Value line:</strong> {{ lead.get("value_pitch") }}</p>
+    {% endif %}
+    <p class="helper-text" style="margin-top: 0;">
+      {% if lead.get("website") %}<a href="{{ lead.get('website') }}" target="_blank" rel="noopener">{{ lead.get("website") }}</a> · {% endif %}
+      Created {{ lead.get("created_at") or "—" }}
+    </p>
+  </section>
+
+  <form method="post" action="{{ url_for('save_lead_full', lead_id=lead.id) }}" class="panel intake-panel">
+    <h3>Account &amp; contact data</h3>
+    {% set show_loss_reason = true %}
+    {% include "_lead_fields.html" %}
+    <button type="submit" class="btn">Save full record</button>
+  </form>
+
+  <section class="panel">
+    <h3>Log an outreach touch</h3>
+    <p class="helper-text">Every email/DM/call/voicemail counts. One line is enough: what you said and outcome.</p>
+    <form method="post" action="{{ url_for('add_touch', lead_id=lead.id) }}" class="touch-inline">
+      <label>
+        Channel
+        <select name="touch_channel" required>
+          {% for ch in touch_channels %}
+            <option value="{{ ch }}">{{ ch }}</option>
+          {% endfor %}
+        </select>
+      </label>
+      <label class="wide">
+        Summary (required)
+        <input type="text" name="touch_summary" required placeholder="e.g. Email — sent intro + asked spec/MOQ/documentation" />
+      </label>
+      <button type="submit" class="btn">Add touch</button>
+    </form>
+  </section>
+
+  <section class="panel">
+    <h3>Touch history (newest first)</h3>
+    {% if touch_log %}
+      <div class="table-responsive">
+      <table class="touch-table">
+        <thead>
+          <tr>
+            <th>When</th>
+            <th>Channel</th>
+            <th>Summary</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for t in touch_log %}
+            <tr>
+              <td class="touch-when">{{ t.get("at", "") }}</td>
+              <td>{{ t.get("channel", "") }}</td>
+              <td>{{ t.get("summary", "") }}</td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      </div>
+    {% else %}
+      <p class="helper-text">No touches logged yet.</p>
+    {% endif %}
+  </section>
+
+  <form method="post" action="{{ url_for('delete_lead', lead_id=lead.id) }}" onsubmit="return confirm('Delete this lead permanently?');">
+    <button type="submit" class="btn btn-delete">Delete lead</button>
+  </form>
+{% endblock %}

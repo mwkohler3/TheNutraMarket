@@ -1,0 +1,28 @@
+[
+  {
+    "id": "demo-listing-creatine-001",
+    "supplier_company": "Nordic Actives BV",
+    "supplier_contact_email": "supply@nordicactives.example",
+    "ingredient": "Creatine Monohydrate 200 Mesh",
+    "price_per_kg": 5.8,
+    "quantity_kg": 12000.0,
+    "coa_document": "coa-creatine-lot-2026-04.pdf",
+    "expires_on": "2026-09-15",
+    "notes": "Near-expiry overstock lot. EU origin, GMP site.",
+    "created_at": "2026-04-28T13:20:44",
+    "supplier_public_code": "SX-2BE715"
+  },
+  {
+    "id": "demo-listing-collagen-001",
+    "supplier_company": "Atlas BioIngredients",
+    "supplier_contact_email": "inventory@atlasbio.example",
+    "ingredient": "Collagen Peptides Bovine",
+    "price_per_kg": 7.1,
+    "quantity_kg": 8500.0,
+    "coa_document": "coa-collagen-lot-2026-06.pdf",
+    "expires_on": "2026-11-20",
+    "notes": "No buyer commitment yet, should stay masked in match feed.",
+    "created_at": "2026-04-28T13:21:03",
+    "supplier_public_code": "SX-7C923A"
+  }
+]

@@ -1,0 +1,57 @@
+{% extends "marketplace_layout.html" %}
+{% block marketplace_title %}Community{% endblock %}
+
+{% block marketplace_body %}
+  <section class="hero marketplace-hero marketplace-hero--compact">
+    <p class="marketplace-kicker">Procurement network</p>
+    <h2>Community forum</h2>
+    <p class="marketplace-lead">
+      Share sourcing context and category discussion. Keep thread content professional; use <a href="{{ url_for('marketplace_buy') }}">Buyers</a>
+      for deal identity and commits.
+    </p>
+  </section>
+
+  <section class="panel marketplace-panel marketplace-forum">
+    <h3>New thread</h3>
+    <form method="post" action="{{ url_for('forum_new_thread') }}" class="grid-form forum-new-thread">
+      <label class="wide">Thread title<input type="text" name="title" placeholder="Sourcing monohydrate in EU — MOQ experiences?" maxlength="200" /></label>
+      <label class="wide">Message<textarea name="body" rows="3" placeholder="What are you trying to solve?" required></textarea></label>
+      <label>Your company<input type="text" name="author_company" required /></label>
+      <label>Your email<input type="email" name="author_email" required /></label>
+      <button type="submit" class="btn">Post thread</button>
+    </form>
+
+    {% if forum_threads %}
+      <div class="forum-thread-list">
+        {% for th in forum_threads %}
+          <article class="forum-thread">
+            <header class="forum-thread-head">
+              <h4>{{ th.title }}</h4>
+              <p class="forum-meta">{{ th.author_company }} · {{ th.created_at }}</p>
+            </header>
+            <p class="forum-body">{{ th.body }}</p>
+            {% if th.replies %}
+              <ul class="forum-replies">
+                {% for rep in th.replies %}
+                  <li>
+                    <span class="forum-meta">{{ rep.author_company }} · {{ rep.created_at }}</span>
+                    <p>{{ rep.body }}</p>
+                  </li>
+                {% endfor %}
+              </ul>
+            {% endif %}
+            <form method="post" action="{{ url_for('forum_reply') }}" class="grid-form forum-reply-form">
+              <input type="hidden" name="thread_id" value="{{ th.id }}" />
+              <label class="wide">Reply<textarea name="body" rows="2" required></textarea></label>
+              <label>Company<input type="text" name="author_company" required /></label>
+              <label>Email<input type="email" name="author_email" required /></label>
+              <button type="submit" class="btn btn-secondary">Reply</button>
+            </form>
+          </article>
+        {% endfor %}
+      </div>
+    {% else %}
+      <p class="helper-text">No threads yet—start the first conversation above.</p>
+    {% endif %}
+  </section>
+{% endblock %}

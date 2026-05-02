@@ -1,0 +1,145 @@
+{% extends "marketplace_layout.html" %}
+{% block marketplace_title %}Buyers{% endblock %}
+
+{% block marketplace_body %}
+  <section class="hero marketplace-hero marketplace-hero--compact">
+    <p class="marketplace-kicker">Buyers</p>
+    <h2>Alerts, matches, commit</h2>
+    <p class="marketplace-lead">
+      Create ingredient alerts, review live matches, then start a commit. You will be sent to the full
+      <a href="{{ url_for('marketplace_terms') }}">brokered transaction agreement</a> to review terms, sign, and submit—before the supplier identity unlocks.
+      Brokerage on closed deals: <strong>{{ summary.vig_rate_pct }}%</strong>.
+    </p>
+    {% if prefill_listing_id %}
+      {% set picked = (listings | selectattr('id', 'equalto', prefill_listing_id) | list | first) %}
+      {% if picked %}
+        <p class="marketplace-lead marketplace-order-prefill-notice" role="status">
+          Ordering <strong>{{ picked.ingredient }}</strong> — complete <strong>Commit to purchase</strong> below, then the agreement.
+        </p>
+      {% endif %}
+    {% endif %}
+  </section>
+
+  <section class="panel marketplace-panel">
+    <h3>Buyer ingredient alert</h3>
+    <p class="helper-text">Get matched when listings fit your watchlist, price, and volume.</p>
+    <form method="post" action="{{ url_for('add_marketplace_alert') }}" class="grid-form">
+      <label>Buyer company<input type="text" name="buyer_company" required /></label>
+      <label>Buyer contact email<input type="email" name="buyer_contact_email" required /></label>
+      <label class="wide">Ingredient watchlist (comma separated)<input type="text" name="ingredient_watchlist" placeholder="Creatine monohydrate, whey isolate, collagen" required /></label>
+      <label>Max price per kg (optional)<input type="number" step="0.01" min="0" name="max_price_per_kg" /></label>
+      <label>Minimum quantity kg (optional)<input type="number" step="0.01" min="0" name="min_quantity_kg" /></label>
+      <label class="wide">Notes<input type="text" name="notes" placeholder="Region, grade/spec, preferred lead times..." /></label>
+      <button type="submit" class="btn">Create buyer alert</button>
+    </form>
+  </section>
+
+  <section class="panel marketplace-panel">
+    <h3>Live matches</h3>
+    {% if matches %}
+      <div class="table-responsive">
+      <table class="playbook-table">
+        <thead>
+          <tr>
+            <th>Ingredient</th>
+            <th>Supplier</th>
+            <th>Public ref</th>
+            <th>Rating</th>
+            <th>Buyer</th>
+            <th>Buyer contact</th>
+            <th>Price / kg</th>
+            <th>Quantity kg</th>
+            <th>Expiry</th>
+            <th scope="col">Order</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for match in matches %}
+            <tr>
+              <td>{{ match.ingredient }}</td>
+              <td>{{ match.supplier_company_masked }}</td>
+              <td>{{ match.supplier_public_code }}</td>
+              <td class="marketplace-rating-cell">{{ match.supplier_rating_display }}</td>
+              <td>{{ match.buyer_company }}</td>
+              <td>{{ match.buyer_contact_email or "N/A" }}</td>
+              <td>${{ "%.2f"|format(match.price_per_kg) }}</td>
+              <td>{{ "%.0f"|format(match.quantity_kg) }}</td>
+              <td>{{ match.expires_on or "N/A" }}</td>
+              <td>
+                {% if match.listing_id %}
+                  <a class="marketplace-order-link" href="{{ url_for('marketplace_buy', listing=match.listing_id) }}#order-flow">Start order</a>
+                {% else %}—{% endif %}
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      </div>
+    {% else %}
+      <p>No matches yet. Add an alert above or wait for new listings.</p>
+    {% endif %}
+  </section>
+
+  <section class="panel marketplace-panel marketplace-rate-supplier">
+    <h3>Rate a supplier (after you committed)</h3>
+    <p class="helper-text">
+      Only buyers who completed the agreement for a listing can score the supplier. Ratings use the anonymous <strong>SX-</strong> code.
+    </p>
+    <form method="post" action="{{ url_for('submit_supplier_rating') }}" class="grid-form">
+      <label>
+        Listing
+        <select name="listing_id" required>
+          <option value="">Select listing...</option>
+          {% for listing in listings %}
+            <option value="{{ listing.id }}" {% if prefill_listing_id == listing.id %}selected{% endif %}>{{ listing.ingredient }} — {{ listing.supplier_public_code }} — ${{ "%.2f"|format(listing.price_per_kg) }}/kg</option>
+          {% endfor %}
+        </select>
+      </label>
+      <label>Your buyer contact email (must match commit)<input type="email" name="buyer_contact_email" required /></label>
+      <label>
+        Stars
+        <select name="stars" required>
+          <option value="">Choose…</option>
+          <option value="5">5 — Excellent</option>
+          <option value="4">4</option>
+          <option value="3">3</option>
+          <option value="2">2</option>
+          <option value="1">1 — Poor</option>
+        </select>
+      </label>
+      <label class="wide">Optional comment<input type="text" name="comment" maxlength="2000" placeholder="Documentation, responsiveness, shipping…" /></label>
+      <button type="submit" class="btn">Submit rating</button>
+    </form>
+  </section>
+
+  <section class="panel marketplace-panel" id="order-flow">
+    <h3>Commit to purchase (step 1 of 2)</h3>
+    <p class="helper-text">
+      Enter your details here, then review and accept the legal agreement on the next page. Supplier identity unlocks only after acceptance.
+    </p>
+    <form method="post" action="{{ url_for('commit_marketplace_begin') }}" class="grid-form" id="order-flow-form">
+      <label>
+        Listing
+        <select name="listing_id" id="order-flow-listing" required>
+          <option value="">Select listing...</option>
+          {% for listing in listings %}
+            <option value="{{ listing.id }}" {% if prefill_listing_id == listing.id %}selected{% endif %}>{{ listing.ingredient }} — ${{ "%.2f"|format(listing.price_per_kg) }}/kg</option>
+          {% endfor %}
+        </select>
+      </label>
+      <label>Buyer company<input type="text" name="buyer_company" required /></label>
+      <label>Buyer contact email<input type="email" name="buyer_contact_email" required /></label>
+      <button type="submit" class="btn">Continue to agreement</button>
+    </form>
+  </section>
+  <script>
+  (function () {
+    if (window.location.hash !== "#order-flow") return;
+    var el = document.getElementById("order-flow");
+    if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
+    var listing = document.getElementById("order-flow-listing");
+    var company = document.querySelector("#order-flow-form input[name='buyer_company']");
+    if (company && !company.value) setTimeout(function () { company.focus(); }, 400);
+  })();
+  </script>
+{% endblock %}

@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+
+{% block title %}Marketplace lead intake{% endblock %}
+
+{% block content %}
+  <section class="hero">
+    <h2>Structured marketplace lead intake</h2>
+    <p class="helper-text" style="margin-top: 0;">
+      {{ wedge_phase_copy }}
+      Required: company name. Use this for ingredients, packaging, or merchandise leads.
+      After submit you land on the full record to log touches.
+    </p>
+    <p class="helper-text"><a href="{{ url_for('sales_playbook') }}">Sales playbook</a> · <a href="{{ url_for('index') }}">Dashboard</a></p>
+  </section>
+
+  <form method="post" action="{{ url_for('lead_intake') }}" class="panel intake-panel">
+    <h3>New account</h3>
+    {% set show_loss_reason = false %}
+    {% include "_lead_fields.html" %}
+    <button type="submit" class="btn">Create lead</button>
+  </form>
+{% endblock %}

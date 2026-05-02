@@ -1,0 +1,87 @@
+<script>
+(function () {
+  var asideEl = document.getElementById("marketplace-assistant");
+  var logEl = document.getElementById("mp-chat-log");
+  var inputEl = document.getElementById("mp-chat-input");
+  var toggleEl = document.getElementById("mp-assistant-toggle");
+  var panelEl = document.getElementById("mp-chat-panel");
+  if (!logEl || !inputEl || !asideEl || !toggleEl || !panelEl) return;
+
+  var COLLAPSE_KEY = "floatingAssistantCollapsed";
+
+  function setCollapsed(collapsed) {
+    asideEl.classList.toggle("global-floating-assistant--collapsed", collapsed);
+    toggleEl.setAttribute("aria-expanded", collapsed ? "false" : "true");
+    toggleEl.setAttribute(
+      "aria-label",
+      collapsed ? "Open AI assistant" : "Hide AI assistant"
+    );
+    if (collapsed) panelEl.setAttribute("aria-hidden", "true");
+    else panelEl.removeAttribute("aria-hidden");
+    try {
+      if (collapsed) localStorage.setItem(COLLAPSE_KEY, "1");
+      else localStorage.removeItem(COLLAPSE_KEY);
+    } catch (e) {}
+  }
+
+  function expandIfNeeded() {
+    if (asideEl.classList.contains("global-floating-assistant--collapsed")) {
+      setCollapsed(false);
+    }
+  }
+
+  try {
+    if (localStorage.getItem(COLLAPSE_KEY) === "1") setCollapsed(true);
+  } catch (e) {}
+
+  toggleEl.addEventListener("click", function () {
+    var wasCollapsed = asideEl.classList.contains("global-floating-assistant--collapsed");
+    setCollapsed(!wasCollapsed);
+    if (wasCollapsed) inputEl.focus();
+  });
+
+  function appendLine(text, cls) {
+    var p = document.createElement("p");
+    p.className = cls || "";
+    p.textContent = text;
+    logEl.appendChild(p);
+  }
+
+  async function send() {
+    var msg = (inputEl.value || "").trim();
+    if (!msg) return;
+    appendLine("You: " + msg, "mp-chat-you");
+    inputEl.value = "";
+    inputEl.disabled = true;
+    try {
+      var res = await fetch("{{ url_for('marketplace_chat') }}", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "Accept": "application/json" },
+        body: JSON.stringify({ message: msg }),
+      });
+      var data = await res.json();
+      appendLine("Assistant: " + (data.reply || "No response."), "mp-chat-bot");
+    } catch (e) {
+      appendLine("Assistant: Something went wrong. Try again.", "mp-chat-bot");
+    }
+    inputEl.disabled = false;
+    inputEl.focus();
+  }
+
+  inputEl.addEventListener("keydown", function (e) {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      send();
+    }
+  });
+
+  function focusFromHash() {
+    if (window.location.hash === "#marketplace-assistant" && inputEl) {
+      expandIfNeeded();
+      inputEl.focus();
+    }
+  }
+  window.addEventListener("hashchange", focusFromHash);
+  focusFromHash();
+})();
+</script>

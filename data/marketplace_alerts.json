@@ -1,0 +1,26 @@
+[
+  {
+    "id": "demo-alert-brand-001",
+    "buyer_company": "Peak Performance Labs",
+    "buyer_contact_email": "procurement@peaklabs.example",
+    "ingredient_watchlist": [
+      "Creatine Monohydrate 200 Mesh"
+    ],
+    "max_price_per_kg": 6.2,
+    "min_quantity_kg": 5000.0,
+    "notes": "Need supply in next 30 days. US import support preferred.",
+    "created_at": "2026-04-28T13:20:44"
+  },
+  {
+    "id": "demo-alert-collagen-001",
+    "buyer_company": "Formulation House Inc",
+    "buyer_contact_email": "buying@formulationhouse.example",
+    "ingredient_watchlist": [
+      "Collagen Peptides Bovine"
+    ],
+    "max_price_per_kg": 7.5,
+    "min_quantity_kg": 2000.0,
+    "notes": "Testing hidden supplier mode before commitment.",
+    "created_at": "2026-04-28T13:21:03"
+  }
+]

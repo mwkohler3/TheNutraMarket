@@ -1,0 +1,153 @@
+{% extends "base.html" %}
+
+{% block title %}Marketplace pipeline{% endblock %}
+
+{% block content %}
+  <section class="hero">
+    <h2>Marketplace pipeline &amp; outreach</h2>
+    <p>
+      Qualify buyers (brands, CMOs, distributors) and suppliers across <strong>ingredients, packaging, and merchandise</strong>
+      against spec, MOQ, region, and COA path—then log every touch.
+    </p>
+    <p class="helper-text" style="margin-bottom: 0;">
+      <a href="{{ url_for('marketplace') }}">Ingredient marketplace</a> ·
+      <a href="{{ url_for('sales_playbook') }}">Sales playbook</a> (quotas + scripts + sources) ·
+      <a href="{{ url_for('lead_intake') }}">Lead intake</a> ·
+      <a href="{{ url_for('buyers') }}">Buyer leads page</a> ·
+      <a href="{{ url_for('suppliers') }}">Supplier leads page</a> ·
+      <a href="{{ url_for('legal_agreements') }}">Legal agreements</a> (supplier term sheet + MSA template)
+    </p>
+  </section>
+
+  <section class="stats-grid">
+    <article class="stat-card"><h3>Total Leads</h3><p>{{ summary.total }}</p></article>
+    <article class="stat-card"><h3>New</h3><p>{{ summary.new }}</p></article>
+    <article class="stat-card"><h3>Qualified</h3><p>{{ summary.qualified }}</p></article>
+    <article class="stat-card"><h3>Active Calls</h3><p>{{ summary.active }}</p></article>
+    <article class="stat-card"><h3>Won</h3><p>{{ summary.won }}</p></article>
+    <article class="stat-card"><h3>Lost</h3><p>{{ summary.lost }}</p></article>
+  </section>
+
+  <section class="panel pipeline-panel">
+    <h3>Regional lead discovery pipeline</h3>
+    <p class="helper-text pipeline-disclaimer">
+      This runs <strong>many targeted public-web searches</strong> per geography,
+      then dedupes by <strong>website</strong> and sets each row’s <strong>region</strong> to the bucket you chose.
+      It will <strong>never</strong> be a complete list of every manufacturer on earth—that needs paid data (ImportGenius, Apollo, exhibitor buys, etc.).
+      Use this as a <strong>fast seed layer</strong>; your team still verifies ICP and contacts.
+    </p>
+    <form method="post" action="{{ url_for('run_creatine_pipeline') }}" class="pipeline-form">
+      <fieldset class="region-fieldset">
+        <legend>Region buckets</legend>
+        <p class="fieldset-hint">Pick one or more. Searches rotate across buckets so one region does not eat the whole budget.</p>
+        <div class="region-checkboxes">
+          {% for r in region_options %}
+            <label class="chk"><input type="checkbox" name="regions" value="{{ r }}" /> {{ r }}</label>
+          {% endfor %}
+        </div>
+      </fieldset>
+      <div class="pipeline-advanced grid-form">
+        <label>
+          Results per search
+          <input type="number" name="per_query" value="8" min="3" max="{{ pipeline_per_query_cap }}" />
+        </label>
+        <label>
+          Max <strong>new</strong> accounts this run
+          <input type="number" name="max_total" value="80" min="5" max="{{ pipeline_max_leads }}" />
+        </label>
+        <label>
+          Max searches (hard cap)
+          <input type="number" name="max_queries" value="{{ pipeline_max_queries }}" min="10" max="{{ pipeline_max_queries }}" />
+        </label>
+      </div>
+      <button type="submit" class="btn">Run lead pipeline</button>
+    </form>
+  </section>
+
+  <section class="panel">
+    <h3>Add manual marketplace lead</h3>
+    <p class="helper-text">Use this for any ingredient, packaging, or merchandise opportunity.</p>
+    <form method="post" action="{{ url_for('add_manual') }}" class="grid-form">
+      <label>
+        Company name
+        <input type="text" name="company_name" required />
+      </label>
+      <label>
+        Website
+        <input type="url" name="website" placeholder="https://example.com" />
+      </label>
+      <label>
+        Ingredient focus (comma separated)
+        <input type="text" name="ingredient_focus" placeholder="e.g. collagen, bottles, shaker cups" />
+      </label>
+      <label>
+        Priority
+        <select name="priority">
+          <option>High</option>
+          <option selected>Medium</option>
+          <option>Low</option>
+        </select>
+      </label>
+      <label>
+        Next action
+        <input type="text" name="next_action" placeholder="Call procurement manager by Tuesday" />
+      </label>
+      <label class="wide">
+        Notes
+        <textarea name="notes" rows="3" placeholder="Mesh, monohydrate vs other forms, annual MT, incumbent supplier, COA requirements…"></textarea>
+      </label>
+      <button type="submit" class="btn">Add lead</button>
+    </form>
+  </section>
+
+  <section class="panel">
+    <h3>Lead sections</h3>
+    <p class="helper-text">Buyers and suppliers now live on separate pages (not stacked together).</p>
+    <div class="cards cards-two-up">
+      <article class="card">
+        <h4>Buyer leads</h4>
+        <p><strong>Count:</strong> {{ buyer_leads | length }}</p>
+        <p class="helper-text">Demand-side targets: brands, private label, distributors, and manufacturers/CMOs.</p>
+        <a class="btn" href="{{ url_for('buyers') }}">Open buyer leads</a>
+      </article>
+      <article class="card">
+        <h4>Supplier leads</h4>
+        <p><strong>Count:</strong> {{ supplier_leads | length }}</p>
+        <p class="helper-text">Supply-side targets for ingredient/flavor exclusivity negotiations.</p>
+        <a class="btn" href="{{ url_for('suppliers') }}">Open supplier leads</a>
+      </article>
+    </div>
+  </section>
+
+  <section class="panel">
+    <h3>Exclusive ingredients / systems (active portfolio)</h3>
+    {% if exclusives %}
+      <div class="table-responsive">
+      <table class="playbook-table">
+        <thead>
+          <tr>
+            <th>Company</th>
+            <th>Exclusive item</th>
+            <th>Status</th>
+            <th>Territory</th>
+            <th>Notes</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for ex in exclusives %}
+            <tr>
+              <td>{{ ex.company_name }}</td>
+              <td>{{ ex.exclusive_item }}</td>
+              <td>{{ ex.status }}</td>
+              <td>{{ ex.territory }}</td>
+              <td>{{ ex.notes }}</td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      </div>
+    {% else %}
+      <p>No exclusives recorded yet.</p>
+    {% endif %}
+  </section>
+{% endblock %}
