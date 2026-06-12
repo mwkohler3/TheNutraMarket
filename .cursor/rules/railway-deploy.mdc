@@ -1,0 +1,16 @@
+---
+description: Push marketplace changes to Railway after completing work
+alwaysApply: true
+---
+
+# Railway deploy workflow
+
+TheNutraMarket deploys to Railway from GitHub `main` (`https://github.com/mwkohler3/TheNutraMarket`).
+
+After completing user-requested code changes for this project:
+
+1. Commit relevant changes with a clear message (do not commit secrets, `.env`, or `data/leads.json`).
+2. Push to `origin main` unless the user explicitly says not to deploy.
+3. Tell the user the commit hash and that Railway will redeploy in ~1–3 minutes.
+
+Do not ask "want me to push?" — push by default when work is done.
