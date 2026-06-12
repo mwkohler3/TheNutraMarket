@@ -3,13 +3,16 @@
   data-category="{{ listing.category }}"
   data-search="{{ (listing.ingredient ~ ' ' ~ listing.supplier_public_name ~ ' ' ~ (listing.notes or ''))|lower }}"
 >
-  <div class="wb-lot__visual wb-lot__visual--{{ listing.category|lower }}">
-    <span class="wb-lot__badge wb-lot__badge--{{ listing.badge|lower }}">{{ listing.badge }}</span>
-  </div>
   <div class="wb-lot__body">
-    <p class="wb-lot__category">{{ listing.category }}{% if listing.sale_mode == 'auction' %} · Live auction{% endif %}</p>
+    <div class="wb-lot__meta">
+      <span class="wb-lot__badge wb-lot__badge--{{ listing.badge|lower }}">{{ listing.badge }}</span>
+      <span class="wb-lot__category">{{ listing.category }}{% if listing.sale_mode == 'auction' %} · Live auction{% endif %}</span>
+    </div>
     <h3 class="wb-lot__title">{{ listing.ingredient }}</h3>
     <p class="wb-lot__supplier">{{ listing.supplier_public_name }}</p>
+    {% if listing.coa_document %}
+      <p class="wb-lot__coa">COA on file · {{ listing.coa_document }}</p>
+    {% endif %}
     {% if listing.notes %}
       <p class="wb-lot__note">{{ listing.notes }}</p>
     {% endif %}

@@ -2906,18 +2906,13 @@ html {
   box-shadow: 0 6px 20px rgba(0, 0, 0, 0.08);
 }
 
-.wb-lot__visual {
-  height: 120px;
-  position: relative;
+.wb-lot__meta {
   display: flex;
-  align-items: flex-end;
-  padding: 0.65rem;
-  background: linear-gradient(135deg, #f8f8f8, #ececec);
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin-bottom: 0.15rem;
 }
-
-.wb-lot__visual--ingredient { background: linear-gradient(135deg, #eef4ff, #dbeafe); }
-.wb-lot__visual--flavoring { background: linear-gradient(135deg, #fffbeb, #fde68a); }
-.wb-lot__visual--packaging { background: linear-gradient(135deg, #faf5ff, #e9d5ff); }
 
 .wb-lot__badge {
   font-size: 0.68rem;
@@ -2935,7 +2930,7 @@ html {
 .wb-lot__badge--classic { color: #1e3a8a; }
 
 .wb-lot__body {
-  padding: 0.85rem 0.95rem 1rem;
+  padding: 0.95rem 0.95rem 1rem;
   display: flex;
   flex-direction: column;
   gap: 0.35rem;
@@ -2948,6 +2943,14 @@ html {
   text-transform: uppercase;
   letter-spacing: 0.08em;
   color: #888;
+  text-align: right;
+}
+
+.wb-lot__coa {
+  margin: 0;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: #1e3a8a;
 }
 
 .wb-lot__title {
