@@ -2,56 +2,88 @@
 {% block marketplace_title %}Community{% endblock %}
 
 {% block marketplace_body %}
-  <section class="hero marketplace-hero marketplace-hero--compact">
-    <p class="marketplace-kicker">Procurement network</p>
-    <h2>Community forum</h2>
-    <p class="marketplace-lead">
-      Share sourcing context and category discussion. Keep thread content professional; use <a href="{{ url_for('marketplace') }}">Live inventory</a>
-      for deal identity and commits.
-    </p>
+  <section class="wb-page-head">
+    <h1>Community</h1>
+    <p>Sourcing discussions between buyers and onboarded suppliers. For deals, use <a href="{{ url_for('marketplace') }}">Shop all</a>.</p>
   </section>
 
-  <section class="panel marketplace-panel marketplace-forum">
-    <h3>New thread</h3>
-    <form method="post" action="{{ url_for('forum_new_thread') }}" class="grid-form forum-new-thread">
-      <label class="wide">Thread title<input type="text" name="title" placeholder="Sourcing monohydrate in EU — MOQ experiences?" maxlength="200" /></label>
-      <label class="wide">Message<textarea name="body" rows="3" placeholder="What are you trying to solve?" required></textarea></label>
-      <label>Your company<input type="text" name="author_company" required /></label>
-      <label>Your email<input type="email" name="author_email" required /></label>
-      <button type="submit" class="btn">Post thread</button>
-    </form>
+  <div class="wb-community-layout">
+    <aside class="wb-community-sidebar">
+      <h2>Topics</h2>
+      <ul class="wb-topic-list">
+        <li><a href="#all">All threads</a></li>
+        <li><a href="#cat-sourcing">Sourcing</a></li>
+        <li><a href="#cat-quality">Quality &amp; COA</a></li>
+        <li><a href="#cat-logistics">Logistics</a></li>
+        <li><a href="#cat-packaging">Packaging</a></li>
+        <li><a href="#cat-general">General</a></li>
+      </ul>
+      <p class="wb-community-sidebar__stat">{{ forum_threads|length }} active thread{% if forum_threads|length != 1 %}s{% endif %}</p>
+    </aside>
 
-    {% if forum_threads %}
-      <div class="forum-thread-list">
-        {% for th in forum_threads %}
-          <article class="forum-thread">
-            <header class="forum-thread-head">
-              <h4>{{ th.title }}</h4>
-              <p class="forum-meta">{{ th.author_company }} · {{ th.created_at }}</p>
-            </header>
-            <p class="forum-body">{{ th.body }}</p>
-            {% if th.replies %}
-              <ul class="forum-replies">
-                {% for rep in th.replies %}
-                  <li>
-                    <span class="forum-meta">{{ rep.author_company }} · {{ rep.created_at }}</span>
-                    <p>{{ rep.body }}</p>
-                  </li>
-                {% endfor %}
-              </ul>
-            {% endif %}
-            <form method="post" action="{{ url_for('forum_reply') }}" class="grid-form forum-reply-form">
-              <input type="hidden" name="thread_id" value="{{ th.id }}" />
-              <label class="wide">Reply<textarea name="body" rows="2" required></textarea></label>
-              <label>Company<input type="text" name="author_company" required /></label>
-              <label>Email<input type="email" name="author_email" required /></label>
-              <button type="submit" class="btn btn-secondary">Reply</button>
-            </form>
-          </article>
-        {% endfor %}
-      </div>
-    {% else %}
-      <p class="helper-text">No threads yet—start the first conversation above.</p>
-    {% endif %}
-  </section>
+    <div class="wb-community-main">
+      <section class="wb-panel">
+        <h2>Start a thread</h2>
+        <form method="post" action="{{ url_for('forum_new_thread') }}" class="wb-form">
+          <label>Category
+            <select name="category">
+              <option value="Sourcing">Sourcing</option>
+              <option value="Quality & COA">Quality &amp; COA</option>
+              <option value="Logistics">Logistics</option>
+              <option value="Packaging">Packaging</option>
+              <option value="General">General</option>
+            </select>
+          </label>
+          <label>Title<input type="text" name="title" maxlength="200" required placeholder="ISO creatine monohydrate — lead times?" /></label>
+          <label>Message<textarea name="body" rows="4" required placeholder="Share context, MOQ, region, urgency…"></textarea></label>
+          <div class="wb-form__row">
+            <label>Company<input type="text" name="author_company" required /></label>
+            <label>Email<input type="email" name="author_email" required /></label>
+          </div>
+          <button type="submit" class="wb-btn">Post thread</button>
+        </form>
+      </section>
+
+      {% if forum_threads %}
+        <div class="wb-thread-list">
+          {% for th in forum_threads %}
+            <article class="wb-thread" id="thread-{{ th.id }}">
+              <header class="wb-thread__head">
+                <span class="wb-thread__category">{{ th.category or 'General' }}</span>
+                <h3>{{ th.title }}</h3>
+                <p class="wb-thread__meta">{{ th.author_company }} · {{ th.created_at[:10] }} · {{ (th.replies or [])|length }} repl{% if (th.replies or [])|length == 1 %}y{% else %}ies{% endif %}</p>
+              </header>
+              <p class="wb-thread__body">{{ th.body }}</p>
+
+              {% if th.replies %}
+                <div class="wb-replies">
+                  {% for rep in th.replies %}
+                    <div class="wb-reply">
+                      <p class="wb-reply__meta"><strong>{{ rep.author_company }}</strong> · {{ rep.created_at[:10] }}</p>
+                      <p>{{ rep.body }}</p>
+                    </div>
+                  {% endfor %}
+                </div>
+              {% endif %}
+
+              <details class="wb-reply-box">
+                <summary>Reply to this thread</summary>
+                <form method="post" action="{{ url_for('forum_reply') }}" class="wb-form">
+                  <input type="hidden" name="thread_id" value="{{ th.id }}" />
+                  <label>Message<textarea name="body" rows="3" required></textarea></label>
+                  <div class="wb-form__row">
+                    <label>Company<input type="text" name="author_company" required /></label>
+                    <label>Email<input type="email" name="author_email" required /></label>
+                  </div>
+                  <button type="submit" class="wb-btn wb-btn--outline">Post reply</button>
+                </form>
+              </details>
+            </article>
+          {% endfor %}
+        </div>
+      {% else %}
+        <p class="wb-empty">No threads yet. Start the conversation above.</p>
+      {% endif %}
+    </div>
+  </div>
 {% endblock %}

@@ -1,133 +1,62 @@
 {% extends "marketplace_layout.html" %}
-{% block marketplace_title %}Live inventory{% endblock %}
+{% block marketplace_title %}Shop all{% endblock %}
 
 {% block marketplace_body %}
-  <section class="nm-catalog-hero nm-catalog-hero--slim">
-    <div class="nm-catalog-hero__row">
-      <div>
-        <p class="nm-catalog-hero__eyebrow">Instant inventory</p>
-        <h1>{{ summary.listings }} live lots</h1>
-        <p class="nm-catalog-hero__lead">
-          Ingredients, flavorings, and packaging from verified suppliers. Request an intro to negotiate offline.
-        </p>
-      </div>
-      <div class="nm-catalog-hero__stats">
-        <span class="nm-stat-pill">{{ marketplace_vig_pct }}% brokerage</span>
-        <span class="nm-stat-pill">COA on file</span>
-      </div>
-    </div>
+  <section class="wb-page-head">
+    <h1>{{ site_name }} selections</h1>
+    <p>{{ listings|length }} live lot{% if listings|length != 1 %}s{% endif %} from onboarded suppliers</p>
   </section>
 
-  <section class="nm-toolbar" aria-label="Filter listings">
-    <label class="nm-search">
-      <span class="sr-only">Search listings</span>
-      <input type="search" id="nm-listing-search" placeholder="Search product or supplier…" autocomplete="off" />
-    </label>
-    <div class="nm-filter-chips" role="tablist" aria-label="Category">
-      <button type="button" class="nm-chip is-active" data-category="all">All</button>
-      <button type="button" class="nm-chip" data-category="Ingredient">Ingredients</button>
-      <button type="button" class="nm-chip" data-category="Flavoring">Flavorings</button>
-      <button type="button" class="nm-chip" data-category="Packaging">Packaging</button>
+  <section class="wb-toolbar">
+    <div class="wb-filter-chips" role="tablist" aria-label="Category">
+      <a class="wb-chip {% if not filter_category %}is-active{% endif %}" href="{{ url_for('marketplace', q=filter_q or none) }}">All</a>
+      <a class="wb-chip {% if filter_category == 'Ingredient' %}is-active{% endif %}" href="{{ url_for('marketplace', category='Ingredient', q=filter_q or none) }}">Ingredients</a>
+      <a class="wb-chip {% if filter_category == 'Flavoring' %}is-active{% endif %}" href="{{ url_for('marketplace', category='Flavoring', q=filter_q or none) }}">Flavorings</a>
+      <a class="wb-chip {% if filter_category == 'Packaging' %}is-active{% endif %}" href="{{ url_for('marketplace', category='Packaging', q=filter_q or none) }}">Packaging</a>
     </div>
   </section>
 
   {% if listings %}
-    <div class="nm-listing-grid" id="nm-listing-grid">
+    <div class="wb-lot-grid">
       {% for listing in listings %}
-        <article
-          class="nm-listing-card"
-          data-category="{{ listing.category }}"
-          data-search="{{ (listing.ingredient ~ ' ' ~ listing.supplier_public_name ~ ' ' ~ (listing.notes or ''))|lower }}"
-        >
-          <div class="nm-listing-card__top">
-            <span class="nm-listing-card__category nm-listing-card__category--{{ listing.category|lower }}">{{ listing.category }}</span>
-            {% if listing.notes and ('48-hour' in listing.notes or 'liquidation' in listing.notes|lower or 'urgent' in listing.notes|lower) %}
-              <span class="nm-listing-card__urgency">Hot lot</span>
-            {% endif %}
-          </div>
-          <h2 class="nm-listing-card__title">{{ listing.ingredient }}</h2>
-          <p class="nm-listing-card__supplier">{{ listing.supplier_public_name }}</p>
-          <dl class="nm-listing-card__meta">
-            <div><dt>Price</dt><dd>{{ listing.price_display }}</dd></div>
-            <div><dt>Available</dt><dd>{{ listing.quantity_display }}</dd></div>
-            <div><dt>COA</dt><dd>{{ listing.coa_document }}</dd></div>
-            <div><dt>Expiry</dt><dd>{{ listing.expires_on or "—" }}</dd></div>
-          </dl>
-          {% if listing.notes %}
-            <p class="nm-listing-card__notes">{{ listing.notes }}</p>
-          {% endif %}
-          <a class="btn nm-btn nm-listing-card__cta" href="{{ url_for('marketplace', listing=listing.id) }}#order-flow">Request intro</a>
-        </article>
+        {% include "marketplace/_lot_card.html" %}
       {% endfor %}
     </div>
-    <p class="nm-empty-state" id="nm-listing-empty" hidden>No listings match your search.</p>
   {% else %}
-    <p class="helper-text">No live lots yet. <a href="{{ url_for('marketplace_suppliers') }}">Suppliers</a> can publish inventory.</p>
+    <p class="wb-empty">No lots match your filters. <a href="{{ url_for('marketplace') }}">Clear filters</a></p>
   {% endif %}
 
-  <section class="panel marketplace-panel nm-order-panel" id="order-flow">
+  <section class="wb-panel wb-order" id="order-flow">
     <h2>Request introduction</h2>
-    <p class="helper-text">Step 1 of 2 — then review and sign the brokerage agreement.</p>
+    <p class="wb-panel__lead">Connect with the onboarded supplier. All commercial terms are agreed directly between you and the supplier.</p>
     {% if prefill_listing_id %}
       {% set picked = (listings | selectattr('id', 'equalto', prefill_listing_id) | list | first) %}
       {% if picked %}
-        <p class="nm-order-selected" role="status">
-          <strong>{{ picked.ingredient }}</strong> · {{ picked.supplier_public_name }} · {{ picked.price_display }}
+        <p class="wb-order-selected" role="status">
+          Selected: <strong>{{ picked.ingredient }}</strong> · {{ picked.supplier_public_name }} · {{ picked.price_display }}
         </p>
       {% endif %}
     {% endif %}
-    <form method="post" action="{{ url_for('commit_marketplace_begin') }}" class="grid-form nm-order-form" id="order-flow-form">
+    <form method="post" action="{{ url_for('commit_marketplace_begin') }}" class="wb-form" id="order-flow-form">
       <label>
         Listing
-        <select name="listing_id" id="order-flow-listing" required>
+        <select name="listing_id" required>
           <option value="">Select listing…</option>
           {% for listing in listings %}
             <option value="{{ listing.id }}" {% if prefill_listing_id == listing.id %}selected{% endif %}>
-              {{ listing.ingredient }} — {{ listing.supplier_public_name }} — {{ listing.price_display }}
+              {{ listing.ingredient }} — {{ listing.supplier_public_name }}
             </option>
           {% endfor %}
         </select>
       </label>
       <label>Your company<input type="text" name="buyer_company" required /></label>
       <label>Contact email<input type="email" name="buyer_contact_email" required /></label>
-      <button type="submit" class="btn nm-btn">Continue to agreement</button>
+      <button type="submit" class="wb-btn">Continue to supplier terms</button>
     </form>
   </section>
 
   <script>
   (function () {
-    var grid = document.getElementById("nm-listing-grid");
-    var search = document.getElementById("nm-listing-search");
-    var empty = document.getElementById("nm-listing-empty");
-    var chips = document.querySelectorAll(".nm-chip");
-    var activeCategory = "all";
-
-    function applyFilters() {
-      if (!grid) return;
-      var q = (search && search.value ? search.value : "").trim().toLowerCase();
-      var visible = 0;
-      grid.querySelectorAll(".nm-listing-card").forEach(function (card) {
-        var cat = card.getAttribute("data-category") || "";
-        var text = card.getAttribute("data-search") || "";
-        var catOk = activeCategory === "all" || cat === activeCategory;
-        var searchOk = !q || text.indexOf(q) !== -1;
-        var show = catOk && searchOk;
-        card.hidden = !show;
-        if (show) visible += 1;
-      });
-      if (empty) empty.hidden = visible > 0;
-    }
-
-    chips.forEach(function (chip) {
-      chip.addEventListener("click", function () {
-        chips.forEach(function (c) { c.classList.remove("is-active"); });
-        chip.classList.add("is-active");
-        activeCategory = chip.getAttribute("data-category") || "all";
-        applyFilters();
-      });
-    });
-    if (search) search.addEventListener("input", applyFilters);
-
     if (window.location.hash === "#order-flow") {
       var el = document.getElementById("order-flow");
       if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });

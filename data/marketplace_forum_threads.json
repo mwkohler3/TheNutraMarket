@@ -1,1 +1,101 @@
-[]
+[
+  {
+    "id": "thread-001",
+    "title": "ISO creatine monohydrate — who has domestic stock under $6/kg?",
+    "body": "Brand launch in 6 weeks. Need 5,000 kg USP grade with COA and lead time under 10 days. Prefer Midwest warehouse.",
+    "category": "Sourcing",
+    "author_company": "Peak Formulation Co.",
+    "author_email": "procurement@peakform.example",
+    "created_at": "2026-06-01T09:15:00",
+    "replies": [
+      {
+        "id": "reply-001",
+        "body": "Nordic Actives had a lot on the board last week — check Shop all. We closed at $5.80/kg FOB Illinois.",
+        "author_company": "Atlas BioIngredients",
+        "author_email": "inventory@atlasbio.example",
+        "created_at": "2026-06-01T14:22:00"
+      }
+    ]
+  },
+  {
+    "id": "thread-002",
+    "title": "COA red flags on near-expiry collagen?",
+    "body": "Seeing lots with 90-day expiry windows. What do you require beyond standard peptide profile — heavy metals, microbiology?",
+    "category": "Quality & COA",
+    "author_company": "Clean Label Brands",
+    "author_email": "qa@cleanlabel.example",
+    "created_at": "2026-06-02T11:00:00",
+    "replies": [
+      {
+        "id": "reply-002",
+        "body": "We require full panel within 12 months and retest if expiry is under 120 days. Ask supplier for original manufacturer COA, not broker repack.",
+        "author_company": "Collagen Proteins Int'l",
+        "author_email": "trade@collagenpro.example",
+        "created_at": "2026-06-02T16:45:00"
+      },
+      {
+        "id": "reply-003",
+        "body": "+1 on retest. Also confirm bovine vs marine source on the COA header matches listing.",
+        "author_company": "Vitamin Matrix Labs",
+        "author_email": "orders@vitmatrix.example",
+        "created_at": "2026-06-03T08:10:00"
+      }
+    ]
+  },
+  {
+    "id": "thread-003",
+    "title": "LTL vs FTL for 8,000 kg whey isolate — cost tradeoffs",
+    "body": "Supplier quoted $8.90/kg but freight is killing us on partial truckload from West Coast. Anyone consolidated recently?",
+    "category": "Logistics",
+    "author_company": "WheyDirect Exports",
+    "author_email": "export@wheydirect.example",
+    "created_at": "2026-06-03T13:30:00",
+    "replies": []
+  },
+  {
+    "id": "thread-004",
+    "title": "Stand-up pouch MOQ for 500g protein SKUs",
+    "body": "Looking for matte 500g pouches with zipper, food grade. Need 25k units with 3-week turnaround. Artwork ready.",
+    "category": "Packaging",
+    "author_company": "NutraPack Solutions",
+    "author_email": "inventory@nutrapack.example",
+    "created_at": "2026-06-04T10:05:00",
+    "replies": [
+      {
+        "id": "reply-004",
+        "body": "PouchPack Industries lists 96k gloss 500g units on the marketplace — might negotiate matte run if you take full lot.",
+        "author_company": "ContainerWorks Inc",
+        "author_email": "wholesale@containerworks.example",
+        "created_at": "2026-06-04T15:20:00"
+      }
+    ]
+  },
+  {
+    "id": "thread-005",
+    "title": "Natural vanilla bourbon — heat stability for RTD",
+    "body": "Reformulating RTD protein. Current flavor failing heat stability above 185°F. Alternatives that survive UHT?",
+    "category": "Sourcing",
+    "author_company": "FlavorChem Partners",
+    "author_email": "orders@flavorchem.example",
+    "created_at": "2026-06-05T09:40:00",
+    "replies": []
+  },
+  {
+    "id": "thread-006",
+    "title": "Best practices for supplier onboarding checks",
+    "body": "What documentation do you collect before first PO with a new ingredient supplier found through the marketplace?",
+    "category": "General",
+    "author_company": "ProBlend Manufacturing",
+    "author_email": "supply@problend.example",
+    "created_at": "2026-06-06T08:00:00",
+    "replies": [
+      {
+        "id": "reply-005",
+        "body": "W-9, FDA registration, liability cert, spec sheet, and two references. We also ask for a trial COA lot before bulk.",
+        "author_company": "Pacific Amino Co.",
+        "author_email": "sales@pacificamino.example",
+        "created_at": "2026-06-06T12:30:00"
+      }
+    ]
+  }
+]

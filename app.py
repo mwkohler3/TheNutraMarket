@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from collections import deque
-from datetime import datetime
+from datetime import date, datetime
 import os
 from pathlib import Path
 import json
@@ -43,7 +43,7 @@ MARKETPLACE_BUYER_ACCESS_FILE = DATA_DIR / "marketplace_buyer_access_requests.js
 MARKETPLACE_VIG_RATE = 0.05
 SUPPLIER_SUBSCRIPTION_MONTHLY_USD = 100.0
 SUPPLIER_LAUNCH_FREE = os.environ.get("SUPPLIER_LAUNCH_FREE", "1").lower() in ("1", "true", "yes")
-MARKETPLACE_AGREEMENT_VERSION = "v1-brokered-marketplace-terms"
+MARKETPLACE_AGREEMENT_VERSION = "v2-supplier-direct-terms"
 SESSION_PENDING_COMMIT_KEY = "marketplace_pending_commit"
 SESSION_MARKETPLACE_ACCESS = "marketplace_member_access"
 SITE_NAME = "TheNutraMarket"
@@ -730,29 +730,30 @@ def marketplace_assistant_reply(message: str) -> str:
     """Rule-based assistant + search listings, alerts, and forum (no external API)."""
     raw = (message or "").strip()
     if not raw:
-        return "Ask me anything—for example: ingredient name, brokerage fee, supplier subscription, COA, or forum."
+        return "Ask about ingredients, flavorings, packaging, supplier enrollment, COA requirements, or community threads."
 
     low = raw.lower()
-    pct = int(MARKETPLACE_VIG_RATE * 100)
     monthly = int(SUPPLIER_SUBSCRIPTION_MONTHLY_USD)
 
-    fee_keys = (
-        "fee",
-        "brokerage",
-        "commission",
-        "vig",
-        "percent",
-        "%",
-        "take",
-        "cut",
-        "platform fee",
-        "marketplace fee",
-    )
-    if any(k in low for k in fee_keys):
+    if any(
+        k in low
+        for k in (
+            "fee",
+            "brokerage",
+            "commission",
+            "vig",
+            "percent",
+            "platform fee",
+            "marketplace fee",
+            "agreement",
+            "contract",
+            "terms",
+        )
+    ):
         return (
-            f"The brokerage fee is {pct}% of the gross value of each closed deal. "
-            f"That is separate from the ${monthly}/month supplier subscription (required to post listings). "
-            "Buyers can set ingredient alerts without a supplier subscription."
+            "Commercial terms are negotiated directly between buyers and our onboarded suppliers. "
+            f"{SITE_NAME} facilitates introductions only—we are not a party to supplier agreements. "
+            "Use Request intro on a listing to start the supplier-direct process."
         )
 
     if any(
@@ -795,8 +796,8 @@ def marketplace_assistant_reply(message: str) -> str:
 
     if any(k in low for k in ("forum", "community", "procurement", "network")) and "listing" not in low:
         return (
-            "Open Marketplace → Community to start or reply to threads with other purchasing agents. "
-            "For private deals, use Buyers and the agreement flow after you match a listing."
+            "Open Community to start or reply to sourcing threads with other buyers and suppliers. "
+            "For deals, use Live inventory and Request intro on a specific lot."
         )
 
     if "coa" in low or "certificate" in low:
@@ -856,13 +857,13 @@ def marketplace_assistant_reply(message: str) -> str:
     )
     if pricing_hint and not tokens:
         return (
-            f"Typical marketplace charges: {pct}% brokerage on closed deal value; suppliers pay ${monthly}/month to list. "
-            "Per-kg listing prices vary by product—name an ingredient to search the catalog."
+            f"Listing prices vary by product and lot—search Live inventory or name an ingredient. "
+            f"Supplier enrollment is {'free during launch' if SUPPLIER_LAUNCH_FREE else f'${monthly}/month'}."
         )
 
     return (
-        f"I could not match that to a specific listing. Try a product name (e.g. collagen), or ask about {pct}% brokerage, "
-        f"${monthly}/mo supplier subscription, COA, or the forum."
+        f"I could not match that to a specific listing. Try a product name (e.g. collagen), "
+        f"or ask about supplier enrollment, COA, or community threads."
     )
 
 
@@ -969,8 +970,31 @@ def build_marketplace_summary() -> dict:
     }
 
 
+def listing_display_badge(listing: dict) -> str:
+    notes = (listing.get("notes") or "").lower()
+    qty = float(listing.get("quantity_kg") or 0)
+    price = float(listing.get("price_per_kg") or 0)
+    if any(x in notes for x in ("48-hour", "liquidation", "urgent", "best bid")):
+        return "Trending"
+    if qty < 800 or price >= 25:
+        return "Rare"
+    if price <= 4.5:
+        return "Value"
+    return "Classic"
+
+
+def listing_days_left(expires_on: str | None) -> int | None:
+    if not expires_on:
+        return None
+    try:
+        exp = date.fromisoformat(str(expires_on)[:10])
+        return max(0, (exp - date.today()).days)
+    except ValueError:
+        return None
+
+
 def listings_for_marketplace_view() -> list[dict]:
-    """Public catalog rows with supplier name, category, and formatted pricing."""
+    """Public catalog rows with supplier name, category, WineBid-style display fields."""
     ensure_all_listing_supplier_codes()
     listings = sorted(load_marketplace_listings(), key=lambda x: x.get("created_at", ""), reverse=True)
     rating_agg = build_supplier_rating_aggregates()
@@ -981,17 +1005,25 @@ def listings_for_marketplace_view() -> list[dict]:
         agg = rating_agg.get(code)
         unit = str(listing.get("unit") or "kg").lower()
         price = float(listing.get("price_per_kg") or 0)
+        qty = float(listing.get("quantity_kg") or 0)
         item["supplier_public_code"] = code
         item["supplier_rating_display"] = format_supplier_rating_pill(agg)
         item["supplier_public_name"] = str(listing.get("supplier_company") or "Supplier")
         item["category"] = str(listing.get("category") or "Ingredient")
         item["unit"] = unit
+        item["badge"] = listing_display_badge(listing)
+        days = listing_days_left(listing.get("expires_on"))
+        item["days_left"] = days
+        item["days_left_label"] = f"{days} days left" if days is not None else "Open lot"
         if unit == "kg":
-            item["price_display"] = f"${price:.2f}/kg"
-            item["quantity_display"] = f"{float(listing.get('quantity_kg') or 0):,.0f} kg"
+            item["price_amount"] = f"${price:,.2f}"
+            item["price_unit_label"] = "per kg"
+            item["quantity_display"] = f"{qty:,.0f} kg available"
         else:
-            item["price_display"] = f"${price:.2f}/unit"
-            item["quantity_display"] = f"{float(listing.get('quantity_kg') or 0):,.0f} units"
+            item["price_amount"] = f"${price:,.2f}"
+            item["price_unit_label"] = "per unit"
+            item["quantity_display"] = f"{qty:,.0f} units available"
+        item["price_display"] = f"{item['price_amount']}/{unit if unit != 'kg' else 'kg'}"
         out.append(item)
     return out
 
@@ -1383,6 +1415,16 @@ def legal_agreements():
 def marketplace():
     summary = build_marketplace_summary()
     listings_for_view = listings_for_marketplace_view()
+    q = request.args.get("q", "").strip().lower()
+    cat = request.args.get("category", "").strip()
+    if cat:
+        listings_for_view = [x for x in listings_for_view if x.get("category") == cat]
+    if q:
+        listings_for_view = [
+            x
+            for x in listings_for_view
+            if q in f"{x.get('ingredient', '')} {x.get('supplier_public_name', '')} {x.get('notes', '')}".lower()
+        ]
     matches = build_marketplace_matches()
     raw_listing = request.args.get("listing", "").strip()
     prefill_listing_id = ""
@@ -1395,6 +1437,8 @@ def marketplace():
         matches=matches,
         prefill_listing_id=prefill_listing_id,
         marketplace_nav_active="marketplace",
+        filter_q=q,
+        filter_category=cat,
     )
 
 
@@ -1715,6 +1759,7 @@ def forum_new_thread():
     body = request.form.get("body", "").strip()
     author_company = request.form.get("author_company", "").strip()
     author_email = request.form.get("author_email", "").strip()
+    category = request.form.get("category", "General").strip() or "General"
     if not title or not body or not author_company or not author_email:
         flash("Thread title, message, company, and email are required.", "error")
         return redirect(url_for("marketplace_community"))
@@ -1724,6 +1769,7 @@ def forum_new_thread():
             "id": str(uuid.uuid4()),
             "title": title[:200],
             "body": body[:8000],
+            "category": category[:60],
             "author_company": author_company,
             "author_email": author_email,
             "created_at": datetime.now().isoformat(timespec="seconds"),
@@ -1776,6 +1822,9 @@ def add_marketplace_listing():
     price_per_kg = _num_or_none(request.form.get("price_per_kg", ""))
     quantity_kg = _num_or_none(request.form.get("quantity_kg", ""))
     coa_document = request.form.get("coa_document", "").strip()
+    category = request.form.get("category", "Ingredient").strip() or "Ingredient"
+    if category not in ("Ingredient", "Flavoring", "Packaging"):
+        category = "Ingredient"
     if not supplier_company or not supplier_contact_email or not ingredient or price_per_kg is None or quantity_kg is None or not coa_document:
         flash("Supplier company, contact email, ingredient, price, quantity, and COA reference are required for a listing.", "error")
         return redirect(url_for("marketplace_suppliers"))
@@ -1788,6 +1837,7 @@ def add_marketplace_listing():
         return redirect(url_for("marketplace_suppliers"))
     listing = {
         "id": str(uuid.uuid4()),
+        "category": category,
         "supplier_company": supplier_company,
         "supplier_contact_email": supplier_contact_email,
         "supplier_public_code": get_or_assign_supplier_public_code(supplier_company, supplier_contact_email),

@@ -4,31 +4,40 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <meta name="color-scheme" content="light" />
-    <meta name="theme-color" content="#0a0a0a" />
+    <meta name="theme-color" content="#ffffff" />
     <title>{% block title %}{{ site_name }}{% endblock %}</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}" />
   </head>
-  <body class="nm-body">
-    <header class="nm-header">
-      <div class="nm-header__inner">
-        <a class="nm-logo" href="{{ url_for('marketplace_hub') }}">{{ site_name }}</a>
+  <body class="wb-body">
+    <header class="wb-header">
+      <div class="wb-header__top">
+        <a class="wb-logo" href="{{ url_for('marketplace_hub') }}">{{ site_name }}</a>
         {% if marketplace_has_access %}
-          <nav class="nm-header__nav" aria-label="Marketplace">
-            <a href="{{ url_for('marketplace') }}">Live inventory</a>
-            <a href="{{ url_for('marketplace_suppliers') }}">Suppliers</a>
-            <a href="{{ url_for('marketplace_community') }}">Community</a>
-            <a href="{{ url_for('marketplace_terms') }}">Agreement</a>
-          </nav>
-        {% else %}
-          <p class="nm-header__badge">Members only</p>
+          <form class="wb-header-search" action="{{ url_for('marketplace') }}" method="get" role="search">
+            <input type="search" name="q" placeholder="Search inventory…" value="{{ request.args.get('q', '') }}" aria-label="Search inventory" />
+          </form>
         {% endif %}
       </div>
+      {% if marketplace_has_access %}
+        <nav class="wb-nav" aria-label="Marketplace">
+          <a href="{{ url_for('marketplace') }}" class="{% if marketplace_nav_active == 'marketplace' %}is-active{% endif %}">Shop all</a>
+          <a href="{{ url_for('marketplace') }}?category=Ingredient" class="{% if request.args.get('category') == 'Ingredient' %}is-active{% endif %}">Ingredients</a>
+          <a href="{{ url_for('marketplace') }}?category=Flavoring" class="{% if request.args.get('category') == 'Flavoring' %}is-active{% endif %}">Flavorings</a>
+          <a href="{{ url_for('marketplace') }}?category=Packaging" class="{% if request.args.get('category') == 'Packaging' %}is-active{% endif %}">Packaging</a>
+          <a href="{{ url_for('marketplace_suppliers') }}" class="{% if marketplace_nav_active == 'suppliers' %}is-active{% endif %}">List inventory</a>
+          <a href="{{ url_for('marketplace_community') }}" class="{% if marketplace_nav_active == 'community' %}is-active{% endif %}">Community</a>
+          <a href="{{ url_for('marketplace_terms') }}" class="{% if marketplace_nav_active == 'terms' %}is-active{% endif %}">Terms</a>
+        </nav>
+        <p class="wb-banner">Live inventory from onboarded suppliers · COA on file · Direct supplier agreements</p>
+      {% else %}
+        <p class="wb-banner wb-banner--muted">Members only — enter your access code or request buyer access</p>
+      {% endif %}
     </header>
 
-    <main class="nm-main">
+    <main class="wb-main">
       {% with messages = get_flashed_messages(with_categories=true) %}
         {% if messages %}
-          <section class="flash-wrap nm-flash-wrap">
+          <section class="flash-wrap wb-flash-wrap">
             {% for category, message in messages %}
               <p class="flash {{ category }}">{{ message }}</p>
             {% endfor %}
@@ -38,11 +47,24 @@
       {% block content %}{% endblock %}
     </main>
 
-    <footer class="nm-footer">
-      <p class="nm-footer__trust">
-        Verified suppliers · COA mandatory · {{ marketplace_vig_pct }}% brokerage · Signed agreements
-      </p>
-      <p class="nm-footer__copy">© {{ site_name }}. Brokered B2B ingredient exchange.</p>
+    <footer class="wb-footer">
+      <div class="wb-footer__cols">
+        <div>
+          <p class="wb-footer__brand">{{ site_name }}</p>
+          <p class="wb-footer__text">Private marketplace for sports nutrition ingredients, flavorings, and packaging.</p>
+        </div>
+        <div>
+          <p class="wb-footer__heading">Buy</p>
+          <a href="{{ url_for('marketplace') }}">Live inventory</a>
+          <a href="{{ url_for('marketplace_community') }}">Community</a>
+        </div>
+        <div>
+          <p class="wb-footer__heading">Sell</p>
+          <a href="{{ url_for('marketplace_suppliers') }}">List inventory</a>
+          <a href="{{ url_for('marketplace_hub') }}">Supplier enrollment</a>
+        </div>
+      </div>
+      <p class="wb-footer__copy">© {{ site_name }}. All agreements are between buyers and onboarded suppliers.</p>
     </footer>
 
     {% if marketplace_has_access %}

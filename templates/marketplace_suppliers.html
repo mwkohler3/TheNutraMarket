@@ -1,70 +1,46 @@
 {% extends "marketplace_layout.html" %}
-{% block marketplace_title %}Suppliers{% endblock %}
+{% block marketplace_title %}List inventory{% endblock %}
 
 {% block marketplace_body %}
-  {% if request.args.get('checkout') == 'canceled' %}
-    <p class="helper-text marketplace-checkout-notice">Checkout was canceled—no card was charged.</p>
-  {% endif %}
-
-  <section class="nm-catalog-hero nm-catalog-hero--compact">
-    <p class="nm-catalog-hero__eyebrow">Supply side</p>
+  <section class="wb-page-head">
     <h1>List inventory</h1>
-    <p class="nm-catalog-hero__lead">
-      {% if supplier_launch_free %}
-        <strong>Free during launch.</strong> Post overstock, near-expiry, and liquidation lots.
-      {% else %}
-        Active subscription required to post lots.
-      {% endif %}
-      Buyers see blind codes until they complete the <a href="{{ url_for('marketplace_terms') }}">brokerage agreement</a>.
-    </p>
+    <p>{% if supplier_launch_free %}Free during launch.{% else %}Active enrollment required.{% endif %} Deals and contracts are between you and the buyer.</p>
   </section>
 
-  <section class="panel marketplace-panel marketplace-subscribe" id="subscribe">
-    <h2>Supplier enrollment</h2>
-    <p class="helper-text">
-      {% if supplier_launch_free %}
-        <strong>Free during our launch period</strong> (normally ${{ supplier_subscription_monthly }}/month).
-        You receive a marketplace access code instantly after enrolling.
-      {% else %}
-        <strong>${{ supplier_subscription_monthly }} / month</strong> per supplier account.
-      {% endif %}
-      {% if stripe_checkout_enabled %}
-        Stripe Checkout for billing when launch pricing ends.
-      {% else %}
-        Demo mode: no card charged until Stripe is configured.
-      {% endif %}
-    </p>
-    <form method="post" action="{{ url_for('supplier_subscribe') }}" class="grid-form">
-      <label>Company name<input type="text" name="company_name" required /></label>
-      <label>Contact email<input type="email" name="contact_email" required /></label>
-      <label>Contact name (optional)<input type="text" name="contact_name" /></label>
-      <label class="wide">
-        <input type="checkbox" name="ack_amount" value="yes" required />
-        {% if supplier_launch_free %}
-          I understand launch listing is free and I will pay agreed brokerage on introduced buyer transactions.
-        {% else %}
-          I agree to the ${{ supplier_subscription_monthly }}/month supplier subscription.
-        {% endif %}
-      </label>
-      <button type="submit" class="btn nm-btn">
-        {% if supplier_launch_free %}Enroll free during launch{% else %}Start subscription{% endif %}
-      </button>
-    </form>
-  </section>
+  <div class="wb-split">
+    <section class="wb-panel" id="subscribe">
+      <h2>Supplier enrollment</h2>
+      <p class="wb-panel__lead">Onboarded suppliers receive a marketplace access code and can publish COA-backed lots.</p>
+      <form method="post" action="{{ url_for('supplier_subscribe') }}" class="wb-form">
+        <label>Company name<input type="text" name="company_name" required /></label>
+        <label>Contact email<input type="email" name="contact_email" required /></label>
+        <label>Contact name (optional)<input type="text" name="contact_name" /></label>
+        <label class="wb-check"><input type="checkbox" name="ack_amount" value="yes" required /> I agree to supplier terms and direct buyer agreements.</label>
+        <button type="submit" class="wb-btn">{% if supplier_launch_free %}Enroll free during launch{% else %}Start enrollment{% endif %}</button>
+      </form>
+    </section>
 
-  <section class="panel marketplace-panel">
-    <h2>New listing</h2>
-    <p class="helper-text">Requires active supplier enrollment, COA reference, and matching contact email.</p>
-    <form method="post" action="{{ url_for('add_marketplace_listing') }}" class="grid-form">
-      <label>Supplier company<input type="text" name="supplier_company" required /></label>
-      <label>Supplier contact email<input type="email" name="supplier_contact_email" required /></label>
-      <label>Ingredient<input type="text" name="ingredient" placeholder="Creatine monohydrate" required /></label>
-      <label>Price per kg (USD)<input type="number" step="0.01" min="0" name="price_per_kg" required /></label>
-      <label>Quantity (kg)<input type="number" step="0.01" min="0" name="quantity_kg" required /></label>
-      <label>COA file / reference<input type="text" name="coa_document" placeholder="coa-lot-2026-04.pdf" required /></label>
-      <label>Expiry date (optional)<input type="date" name="expires_on" /></label>
-      <label class="wide">Notes<input type="text" name="notes" placeholder="48-hour liquidation, domestic stock, MOQ breaks…" /></label>
-      <button type="submit" class="btn nm-btn">Publish listing</button>
-    </form>
-  </section>
+    <section class="wb-panel">
+      <h2>Publish a lot</h2>
+      <p class="wb-panel__lead">Use the same company and email as your enrollment. COA reference required.</p>
+      <form method="post" action="{{ url_for('add_marketplace_listing') }}" class="wb-form">
+        <label>Category
+          <select name="category">
+            <option value="Ingredient">Ingredient</option>
+            <option value="Flavoring">Flavoring</option>
+            <option value="Packaging">Packaging</option>
+          </select>
+        </label>
+        <label>Supplier company<input type="text" name="supplier_company" required /></label>
+        <label>Contact email<input type="email" name="supplier_contact_email" required /></label>
+        <label>Product name<input type="text" name="ingredient" placeholder="Creatine monohydrate" required /></label>
+        <label>Price<input type="number" step="0.01" min="0" name="price_per_kg" required /></label>
+        <label>Quantity<input type="number" step="0.01" min="0" name="quantity_kg" required /></label>
+        <label>COA reference<input type="text" name="coa_document" required /></label>
+        <label>Expiry (optional)<input type="date" name="expires_on" /></label>
+        <label>Notes<input type="text" name="notes" placeholder="Liquidation, MOQ, region…" /></label>
+        <button type="submit" class="wb-btn">Publish listing</button>
+      </form>
+    </section>
+  </div>
 {% endblock %}
