@@ -2158,10 +2158,6 @@ html {
     font-size: 1.35rem;
   }
 
-  .sell-sheet-hero {
-    padding: 1.1rem;
-  }
-
   .touch-inline {
     grid-template-columns: 1fr;
   }
@@ -2169,4 +2165,332 @@ html {
   .touch-inline .wide {
     grid-column: 1;
   }
+}
+
+/* —— TheNutraMarket public marketplace —— */
+.nm-body {
+  background: #fff;
+  color: #0a0a0a;
+}
+
+.nm-header {
+  background: #0a0a0a;
+  color: #fff;
+  border-bottom: 1px solid #1a1a1a;
+}
+
+.nm-header__inner {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 1rem 1.25rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.nm-logo {
+  color: #fff;
+  text-decoration: none;
+  font-weight: 800;
+  font-size: 1.15rem;
+  letter-spacing: -0.02em;
+}
+
+.nm-header__nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem 1.25rem;
+}
+
+.nm-header__nav a {
+  color: #e5e7eb;
+  text-decoration: none;
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+
+.nm-header__nav a:hover {
+  color: #fff;
+}
+
+.nm-header__badge {
+  margin: 0;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #9ca3af;
+}
+
+.nm-main {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 1.5rem 1.25rem 3rem;
+}
+
+.nm-flash-wrap {
+  margin-bottom: 1rem;
+}
+
+.nm-footer {
+  background: #0a0a0a;
+  color: #9ca3af;
+  padding: 1.5rem 1.25rem 2rem;
+  text-align: center;
+}
+
+.nm-footer__trust {
+  margin: 0 0 0.5rem;
+  font-size: 0.82rem;
+  color: #d1d5db;
+  font-weight: 600;
+}
+
+.nm-footer__copy {
+  margin: 0;
+  font-size: 0.78rem;
+}
+
+.nm-hub-hero {
+  text-align: center;
+  padding: 2rem 0 1.5rem;
+}
+
+.nm-hub-hero__eyebrow {
+  margin: 0 0 0.5rem;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: #6b7280;
+}
+
+.nm-hub-hero h1 {
+  margin: 0 0 0.75rem;
+  font-size: clamp(1.5rem, 4vw, 2.1rem);
+  line-height: 1.2;
+  max-width: 40rem;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.nm-hub-hero__lead {
+  margin: 0 auto;
+  max-width: 42rem;
+  color: #4b5563;
+  line-height: 1.55;
+}
+
+.nm-hub-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 1.25rem;
+  margin-top: 1rem;
+}
+
+.nm-hub-card {
+  background: #f9fafb;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  padding: 1.25rem 1.35rem;
+}
+
+.nm-hub-card h2 {
+  margin: 0 0 0.5rem;
+  font-size: 1.15rem;
+}
+
+.nm-hub-card > p {
+  margin: 0 0 1rem;
+  color: #4b5563;
+  font-size: 0.92rem;
+  line-height: 1.5;
+}
+
+.nm-hub-list {
+  margin: 0 0 1rem;
+  padding-left: 1.1rem;
+  color: #374151;
+  font-size: 0.92rem;
+  line-height: 1.55;
+}
+
+.nm-hub-form {
+  display: grid;
+  gap: 0.65rem;
+}
+
+.nm-hub-form--buyer {
+  margin-top: 1.25rem;
+  padding-top: 1.25rem;
+  border-top: 1px solid #e5e7eb;
+}
+
+.nm-hub-form__heading {
+  margin: 0;
+  font-weight: 700;
+  font-size: 0.88rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #6b7280;
+}
+
+.nm-hub-form__label {
+  display: grid;
+  gap: 0.25rem;
+  font-weight: 600;
+  font-size: 0.88rem;
+}
+
+.nm-hub-form__label input {
+  font-weight: 400;
+  padding: 0.55rem 0.65rem;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+}
+
+.nm-hub-form__check {
+  display: flex;
+  gap: 0.5rem;
+  align-items: flex-start;
+  font-size: 0.88rem;
+  line-height: 1.4;
+}
+
+.nm-btn {
+  background: #1f5fff;
+  border-radius: 8px;
+  margin-top: 0.25rem;
+}
+
+.nm-btn--outline {
+  background: #fff;
+  color: #0a0a0a;
+  border: 2px solid #0a0a0a;
+}
+
+.nm-btn--outline:hover {
+  background: #f3f4f6;
+}
+
+.nm-btn--sm {
+  padding: 0.4rem 0.65rem;
+  font-size: 0.82rem;
+  margin-top: 0;
+}
+
+.nm-catalog-hero {
+  margin-bottom: 1.25rem;
+}
+
+.nm-catalog-hero--compact h1 {
+  font-size: 1.5rem;
+}
+
+.nm-catalog-hero__eyebrow {
+  margin: 0 0 0.35rem;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #6b7280;
+}
+
+.nm-catalog-hero__count {
+  margin: 0 0 0.5rem;
+  font-size: 0.9rem;
+  color: #1f5fff;
+  font-weight: 700;
+}
+
+.nm-catalog-hero__count-value {
+  font-size: 1.35rem;
+}
+
+.nm-catalog-hero h1 {
+  margin: 0 0 0.5rem;
+  font-size: clamp(1.35rem, 3vw, 1.85rem);
+}
+
+.nm-catalog-hero__lead {
+  margin: 0;
+  color: #4b5563;
+  line-height: 1.55;
+  max-width: 46rem;
+}
+
+.nm-catalog-hero__lead a {
+  color: #1f5fff;
+}
+
+.nm-marketplace .panel {
+  border: 1px solid #e5e7eb;
+  box-shadow: none;
+  border-radius: 12px;
+}
+
+.nm-listings-table th {
+  background: #f9fafb;
+}
+
+.nm-alert-fab {
+  position: fixed;
+  right: 1rem;
+  bottom: 1rem;
+  z-index: 900;
+  width: 3rem;
+  height: 3rem;
+  border-radius: 999px;
+  border: none;
+  background: #0a0a0a;
+  color: #fff;
+  cursor: pointer;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.nm-alert-fab:hover {
+  background: #1f5fff;
+}
+
+.nm-alert-dialog {
+  border: none;
+  border-radius: 12px;
+  padding: 0;
+  max-width: min(28rem, calc(100vw - 2rem));
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.25);
+}
+
+.nm-alert-dialog::backdrop {
+  background: rgba(0, 0, 0, 0.45);
+}
+
+.nm-alert-dialog__inner {
+  padding: 1.25rem;
+  position: relative;
+}
+
+.nm-alert-dialog__inner h2 {
+  margin: 0 0 0.35rem;
+  font-size: 1.15rem;
+}
+
+.nm-alert-dialog__close {
+  position: absolute;
+  top: 0.5rem;
+  right: 0.65rem;
+  border: none;
+  background: transparent;
+  font-size: 1.5rem;
+  line-height: 1;
+  cursor: pointer;
+  color: #6b7280;
+}
+
+.nm-body .global-floating-assistant {
+  bottom: 4.5rem;
 }

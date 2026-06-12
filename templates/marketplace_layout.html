@@ -1,9 +1,8 @@
-{% extends "base.html" %}
-{% block title %}{% block marketplace_title %}Marketplace{% endblock %} — Ingredient exchange{% endblock %}
+{% extends "nutramarket/base.html" %}
+{% block title %}{% block marketplace_title %}Marketplace{% endblock %} — {{ site_name }}{% endblock %}
 
 {% block content %}
-  <div class="marketplace-page">
-    {% include "marketplace/_subnav.html" %}
+  <div class="marketplace-page nm-marketplace">
     {% block marketplace_body %}{% endblock %}
   </div>
 {% endblock %}

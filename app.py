@@ -39,10 +39,27 @@ MARKETPLACE_SUPPLIER_SUBSCRIPTIONS_FILE = DATA_DIR / "marketplace_supplier_subsc
 MARKETPLACE_FORUM_THREADS_FILE = DATA_DIR / "marketplace_forum_threads.json"
 MARKETPLACE_SUPPLIER_RATINGS_FILE = DATA_DIR / "marketplace_supplier_ratings.json"
 MARKETPLACE_AGREEMENT_SUBMISSIONS_FILE = DATA_DIR / "marketplace_agreement_submissions.json"
+MARKETPLACE_BUYER_ACCESS_FILE = DATA_DIR / "marketplace_buyer_access_requests.json"
 MARKETPLACE_VIG_RATE = 0.05
 SUPPLIER_SUBSCRIPTION_MONTHLY_USD = 100.0
+SUPPLIER_LAUNCH_FREE = os.environ.get("SUPPLIER_LAUNCH_FREE", "1").lower() in ("1", "true", "yes")
 MARKETPLACE_AGREEMENT_VERSION = "v1-brokered-marketplace-terms"
 SESSION_PENDING_COMMIT_KEY = "marketplace_pending_commit"
+SESSION_MARKETPLACE_ACCESS = "marketplace_member_access"
+SITE_NAME = "TheNutraMarket"
+SITE_TAGLINE = "Instant inventory marketplace for sports nutrition"
+SITE_LEGAL_NAME = os.environ.get("SITE_LEGAL_NAME", "TheNutraMarket.com")
+
+_PUBLIC_MARKETPLACE_ENDPOINTS = frozenset(
+    {
+        "marketplace_hub",
+        "marketplace_enter",
+        "marketplace_buyer_access",
+        "supplier_subscribe",
+        "supplier_subscribe_success",
+        "stripe_webhook",
+    }
+)
 
 # Words that must not drive listing/forum keyword search (they match almost everything).
 _MARKETPLACE_ASSISTANT_STOPWORDS = frozenset(
@@ -164,11 +181,8 @@ STRIPE_SECRET_KEY = os.environ.get("STRIPE_SECRET_KEY", "").strip()
 STRIPE_SUPPLIER_PRICE_ID = os.environ.get("STRIPE_SUPPLIER_PRICE_ID", "").strip()
 STRIPE_WEBHOOK_SECRET = os.environ.get("STRIPE_WEBHOOK_SECRET", "").strip()
 STRIPE_CHECKOUT_ENABLED = bool(stripe and STRIPE_SECRET_KEY and STRIPE_SUPPLIER_PRICE_ID)
-WEDGE_PRODUCT = "Ingredient Marketplace"
-WEDGE_PHASE_COPY = (
-    "Global B2B marketplace across ingredients, packaging, and merchandise. "
-    "Match vetted suppliers with qualified buyers based on spec, MOQ, region, and COA documentation."
-)
+WEDGE_PRODUCT = SITE_NAME
+WEDGE_PHASE_COPY = SITE_TAGLINE
 DEFAULT_VALUE_PITCH = (
     "Match vetted suppliers to brands, manufacturers, and distributors across ingredients, packaging, and merchandise."
 )
@@ -345,6 +359,8 @@ def ensure_data_store() -> None:
         MARKETPLACE_SUPPLIER_RATINGS_FILE.write_text("[]", encoding="utf-8")
     if not MARKETPLACE_AGREEMENT_SUBMISSIONS_FILE.exists():
         MARKETPLACE_AGREEMENT_SUBMISSIONS_FILE.write_text("[]", encoding="utf-8")
+    if not MARKETPLACE_BUYER_ACCESS_FILE.exists():
+        MARKETPLACE_BUYER_ACCESS_FILE.write_text("[]", encoding="utf-8")
 
 
 def _safe_load_json_list(path: Path) -> list[dict]:
@@ -395,6 +411,18 @@ def load_agreement_submissions() -> list[dict]:
 def save_agreement_submissions(rows: list[dict]) -> None:
     ensure_data_store()
     MARKETPLACE_AGREEMENT_SUBMISSIONS_FILE.write_text(json.dumps(rows, indent=2), encoding="utf-8")
+
+
+def ensure_supplier_access_codes() -> None:
+    subs = load_supplier_subscriptions()
+    changed = False
+    for row in subs:
+        status = (row.get("status") or "active").lower()
+        if status in ("active", "trialing") and not row.get("access_code"):
+            row["access_code"] = _generate_unique_access_code()
+            changed = True
+    if changed:
+        save_supplier_subscriptions(subs)
 
 
 def load_supplier_subscriptions() -> list[dict]:
@@ -497,6 +525,63 @@ def _generate_unique_supplier_public_code() -> str:
     return "SX-" + uuid.uuid4().hex[:10].upper()
 
 
+def _all_access_codes() -> set[str]:
+    codes: set[str] = set()
+    for sub in load_supplier_subscriptions():
+        code = (sub.get("access_code") or "").strip().upper()
+        if code:
+            codes.add(code)
+    for raw in os.environ.get("MARKETPLACE_ACCESS_CODES", "").split(","):
+        code = raw.strip().upper()
+        if code:
+            codes.add(code)
+    return codes
+
+
+def _generate_unique_access_code() -> str:
+    existing = _all_access_codes()
+    for _ in range(80):
+        cand = "NM-" + uuid.uuid4().hex[:8].upper()
+        if cand not in existing:
+            return cand
+    return "NM-" + uuid.uuid4().hex[:12].upper()
+
+
+def get_or_assign_access_code(company: str, email: str) -> str:
+    subs = load_supplier_subscriptions()
+    row = _find_subscription_row(subs, company, email)
+    if row and row.get("access_code"):
+        return str(row["access_code"])
+    code = _generate_unique_access_code()
+    if row:
+        row["access_code"] = code
+        save_supplier_subscriptions(subs)
+    return code
+
+
+def marketplace_has_access() -> bool:
+    return bool(session.get(SESSION_MARKETPLACE_ACCESS))
+
+
+def valid_marketplace_access_code(code: str) -> bool:
+    normalized = (code or "").strip().upper()
+    if not normalized:
+        return False
+    return normalized in _all_access_codes()
+
+
+def grant_marketplace_access() -> None:
+    session[SESSION_MARKETPLACE_ACCESS] = True
+
+
+def load_buyer_access_requests() -> list[dict]:
+    return _safe_load_json_list(MARKETPLACE_BUYER_ACCESS_FILE)
+
+
+def save_buyer_access_requests(rows: list[dict]) -> None:
+    MARKETPLACE_BUYER_ACCESS_FILE.write_text(json.dumps(rows, indent=2), encoding="utf-8")
+
+
 def _find_subscription_row(subs: list[dict], company: str, email: str) -> dict | None:
     ne, nc = _norm_email(email), _norm_company(company)
     if ne:
@@ -578,6 +663,8 @@ def upsert_local_subscription_from_stripe(
     row["status"] = "active" if stripe_status in ("active", "trialing") else "inactive"
     if not row.get("public_supplier_code"):
         row["public_supplier_code"] = _generate_unique_supplier_public_code()
+    if not row.get("access_code"):
+        row["access_code"] = _generate_unique_access_code()
     save_supplier_subscriptions(subs)
 
 
@@ -626,6 +713,8 @@ def apply_stripe_subscription_object(sub_data: dict) -> None:
         row["contact_email"] = email_hint
     if not row.get("public_supplier_code"):
         row["public_supplier_code"] = _generate_unique_supplier_public_code()
+    if not row.get("access_code"):
+        row["access_code"] = _generate_unique_access_code()
     save_supplier_subscriptions(subs)
 
 
@@ -1184,8 +1273,82 @@ def inject_form_choices() -> dict:
         "pipeline_per_query_cap": PIPELINE_PER_QUERY_CAP,
         "marketplace_vig_pct": int(MARKETPLACE_VIG_RATE * 100),
         "supplier_subscription_monthly": int(SUPPLIER_SUBSCRIPTION_MONTHLY_USD),
+        "supplier_launch_free": SUPPLIER_LAUNCH_FREE,
         "stripe_checkout_enabled": STRIPE_CHECKOUT_ENABLED,
+        "site_name": SITE_NAME,
+        "site_tagline": SITE_TAGLINE,
+        "site_legal_name": SITE_LEGAL_NAME,
+        "marketplace_has_access": marketplace_has_access(),
     }
+
+
+@app.before_request
+def gate_marketplace_members() -> None | object:
+    path = request.path or ""
+    if not path.startswith("/marketplace"):
+        return None
+    endpoint = request.endpoint or ""
+    if endpoint in _PUBLIC_MARKETPLACE_ENDPOINTS:
+        return None
+    if endpoint == "marketplace_buy":
+        return redirect(url_for("marketplace", **request.args))
+    if marketplace_has_access():
+        return None
+    return redirect(url_for("marketplace_hub"))
+
+
+@app.route("/")
+def marketplace_hub():
+    ensure_supplier_access_codes()
+    summary = build_marketplace_summary()
+    return render_template(
+        "nutramarket/hub.html",
+        summary=summary,
+        marketplace_nav_active="hub",
+    )
+
+
+@app.route("/marketplace/hub")
+def marketplace_hub_alias():
+    return redirect(url_for("marketplace_hub"))
+
+
+@app.route("/marketplace/enter", methods=["POST"])
+def marketplace_enter():
+    code = request.form.get("access_code", "").strip()
+    if valid_marketplace_access_code(code):
+        grant_marketplace_access()
+        flash("Welcome to the marketplace.", "success")
+        return redirect(url_for("marketplace"))
+    flash("Invalid access code. Check your email or subscribe as a supplier.", "error")
+    return redirect(url_for("marketplace_hub"))
+
+
+@app.route("/marketplace/buyer-access", methods=["POST"])
+def marketplace_buyer_access():
+    company = request.form.get("company_name", "").strip()
+    email = request.form.get("contact_email", "").strip()
+    contact_name = request.form.get("contact_name", "").strip()
+    if not company or not email:
+        flash("Company name and contact email are required.", "error")
+        return redirect(url_for("marketplace_hub"))
+    rows = load_buyer_access_requests()
+    rows.append(
+        {
+            "id": str(uuid.uuid4()),
+            "company_name": company,
+            "contact_name": contact_name,
+            "contact_email": email,
+            "created_at": datetime.now().isoformat(timespec="seconds"),
+        }
+    )
+    save_buyer_access_requests(rows)
+    grant_marketplace_access()
+    flash(
+        f"Browse access granted for {company}. You can set ingredient alerts from the marketplace.",
+        "success",
+    )
+    return redirect(url_for("marketplace"))
 
 
 @app.route("/playbook")
@@ -1207,10 +1370,17 @@ def legal_agreements():
 def marketplace():
     summary = build_marketplace_summary()
     listings_for_view = listings_for_marketplace_view()
+    matches = build_marketplace_matches()
+    raw_listing = request.args.get("listing", "").strip()
+    prefill_listing_id = ""
+    if raw_listing and any(str(x.get("id")) == raw_listing for x in listings_for_view):
+        prefill_listing_id = raw_listing
     return render_template(
         "marketplace_home.html",
         summary=summary,
         listings=listings_for_view,
+        matches=matches,
+        prefill_listing_id=prefill_listing_id,
         marketplace_nav_active="marketplace",
     )
 
@@ -1222,21 +1392,7 @@ def marketplace_listings_page():
 
 @app.route("/marketplace/buy")
 def marketplace_buy():
-    listings_for_view = listings_for_marketplace_view()
-    matches = build_marketplace_matches()
-    summary = build_marketplace_summary()
-    raw_listing = request.args.get("listing", "").strip()
-    prefill_listing_id = ""
-    if raw_listing and any(str(x.get("id")) == raw_listing for x in listings_for_view):
-        prefill_listing_id = raw_listing
-    return render_template(
-        "marketplace_buy.html",
-        listings=listings_for_view,
-        matches=matches,
-        summary=summary,
-        marketplace_nav_active="buy",
-        prefill_listing_id=prefill_listing_id,
-    )
+    return redirect(url_for("marketplace", **request.args))
 
 
 @app.route("/marketplace/suppliers")
@@ -1309,7 +1465,7 @@ def supplier_subscribe():
         flash("Company name and contact email are required to start a supplier subscription.", "error")
         return redirect(url_for("marketplace_suppliers"))
     if not ack:
-        flash("Please confirm the subscription amount to continue.", "error")
+        flash("Please confirm the supplier enrollment terms to continue.", "error")
         return redirect(url_for("marketplace_suppliers"))
     subs = load_supplier_subscriptions()
     ne = _norm_email(email)
@@ -1348,25 +1504,35 @@ def supplier_subscribe():
             return redirect(url_for("marketplace_suppliers"))
         return redirect(str(checkout_session.url), code=303)
 
+    access_code = _generate_unique_access_code()
     subs.append(
         {
             "id": str(uuid.uuid4()),
             "company_name": company,
             "contact_name": contact_name,
             "contact_email": email,
-            "monthly_amount_usd": SUPPLIER_SUBSCRIPTION_MONTHLY_USD,
+            "monthly_amount_usd": 0.0 if SUPPLIER_LAUNCH_FREE else SUPPLIER_SUBSCRIPTION_MONTHLY_USD,
             "billing_provider": "manual",
             "status": "active",
             "started_at": datetime.now().isoformat(timespec="seconds"),
             "public_supplier_code": _generate_unique_supplier_public_code(),
+            "access_code": access_code,
         }
     )
     save_supplier_subscriptions(subs)
-    flash(
-        f"Supplier subscription recorded at ${int(SUPPLIER_SUBSCRIPTION_MONTHLY_USD)}/month (demo mode—no card charged). "
-        f"You can now post listings for {company}.",
-        "success",
-    )
+    grant_marketplace_access()
+    if SUPPLIER_LAUNCH_FREE:
+        flash(
+            f"Supplier account active (free during launch). Your access code: {access_code}. "
+            f"You can now list inventory for {company}.",
+            "success",
+        )
+    else:
+        flash(
+            f"Supplier subscription active. Your access code: {access_code}. "
+            f"You can now post listings for {company}.",
+            "success",
+        )
     return redirect(url_for("marketplace_suppliers"))
 
 
@@ -1422,8 +1588,10 @@ def supplier_subscribe_success():
         subscription_id=str(getattr(sub_obj, "id", "") or "") or None,
         stripe_status=st,
     )
+    access_code = get_or_assign_access_code(company, email)
+    grant_marketplace_access()
     flash(
-        f"Subscription active. Stripe will charge ${int(SUPPLIER_SUBSCRIPTION_MONTHLY_USD)}/month. "
+        f"Subscription active. Your marketplace access code: {access_code}. "
         f"Use the same company ({company or 'as entered'}) and email when you create listings.",
         "success",
     )
@@ -1465,26 +1633,26 @@ def submit_supplier_rating():
     comment = (request.form.get("comment") or "").strip()[:2000]
     if not listing_id or not buyer_contact_email:
         flash("Listing and buyer email are required to submit a rating.", "error")
-        return redirect(url_for("marketplace_buy"))
+        return redirect(url_for("marketplace"))
     try:
         stars = int(stars_raw)
     except ValueError:
         flash("Stars must be a whole number 1–5.", "error")
-        return redirect(url_for("marketplace_buy"))
+        return redirect(url_for("marketplace"))
     if stars < 1 or stars > 5:
         flash("Stars must be between 1 and 5.", "error")
-        return redirect(url_for("marketplace_buy"))
+        return redirect(url_for("marketplace"))
 
     commit_lookup = build_commit_lookup()
     if not commit_lookup.get(_commit_key(listing_id, buyer_contact_email)):
         flash("Only buyers who committed on this listing can rate that supplier (identity stays masked until commitment).", "error")
-        return redirect(url_for("marketplace_buy"))
+        return redirect(url_for("marketplace"))
 
     listings = load_marketplace_listings()
     listing = next((x for x in listings if x.get("id") == listing_id), None)
     if not listing:
         flash("Listing not found.", "error")
-        return redirect(url_for("marketplace_buy"))
+        return redirect(url_for("marketplace"))
 
     code = str(listing.get("supplier_public_code") or "").strip()
     if not code:
@@ -1525,7 +1693,7 @@ def submit_supplier_rating():
         f"Thanks—recorded {stars}/5 for supplier {code}. Scores are shown anonymously on listings until a buyer unlocks the legal name.",
         "success",
     )
-    return redirect(url_for("marketplace_buy"))
+    return redirect(url_for("marketplace"))
 
 
 @app.route("/marketplace/forum/thread", methods=["POST"])
@@ -1640,19 +1808,19 @@ def commit_marketplace_begin():
     buyer_contact_email = request.form.get("buyer_contact_email", "").strip()
     if not listing_id or not buyer_company or not buyer_contact_email:
         flash("Listing, buyer company, and buyer email are required before the agreement.", "error")
-        return redirect(url_for("marketplace_buy"))
+        return redirect(url_for("marketplace"))
 
     listings = load_marketplace_listings()
     if not any(item.get("id") == listing_id for item in listings):
         flash("Listing not found.", "error")
-        return redirect(url_for("marketplace_buy"))
+        return redirect(url_for("marketplace"))
 
     commits = load_marketplace_commits()
     key = _commit_key(listing_id, buyer_contact_email)
     if any(_commit_key(c.get("listing_id", ""), c.get("buyer_contact_email", "")) == key for c in commits):
         flash("Commitment already recorded. Supplier details are already unlocked for this buyer.", "success")
         session.pop(SESSION_PENDING_COMMIT_KEY, None)
-        return redirect(url_for("marketplace_buy"))
+        return redirect(url_for("marketplace"))
 
     session[SESSION_PENDING_COMMIT_KEY] = {
         "listing_id": listing_id,
@@ -1667,7 +1835,7 @@ def commit_marketplace_confirm():
     pending = session.get(SESSION_PENDING_COMMIT_KEY)
     if not pending or not pending.get("listing_id"):
         flash("No pending commitment. Start from Buyers → Commit to purchase.", "error")
-        return redirect(url_for("marketplace_buy"))
+        return redirect(url_for("marketplace"))
 
     if request.form.get("accept_terms") != "yes":
         flash("You must accept the brokered transaction agreement to submit your signature.", "error")
@@ -1689,14 +1857,14 @@ def commit_marketplace_confirm():
     if not any(item.get("id") == listing_id for item in listings):
         session.pop(SESSION_PENDING_COMMIT_KEY, None)
         flash("Listing not found.", "error")
-        return redirect(url_for("marketplace_buy"))
+        return redirect(url_for("marketplace"))
 
     commits = load_marketplace_commits()
     key = _commit_key(listing_id, buyer_contact_email)
     if any(_commit_key(c.get("listing_id", ""), c.get("buyer_contact_email", "")) == key for c in commits):
         session.pop(SESSION_PENDING_COMMIT_KEY, None)
         flash("Commitment already recorded. Supplier details are already unlocked for this buyer.", "success")
-        return redirect(url_for("marketplace_buy"))
+        return redirect(url_for("marketplace"))
 
     commit_id = str(uuid.uuid4())
     accepted_at = datetime.now().isoformat(timespec="seconds")
@@ -1742,14 +1910,14 @@ def commit_marketplace_confirm():
         "Supplier identity will unlock for your buyer email once processing allows.",
         "success",
     )
-    return redirect(url_for("marketplace_buy"))
+    return redirect(url_for("marketplace"))
 
 
 @app.route("/marketplace/commit/cancel")
 def commit_marketplace_cancel():
     session.pop(SESSION_PENDING_COMMIT_KEY, None)
     flash("Agreement flow canceled. No commitment was recorded.", "info")
-    return redirect(url_for("marketplace_buy"))
+    return redirect(url_for("marketplace"))
 
 
 @app.route("/marketplace/alerts", methods=["POST"])
@@ -1759,7 +1927,7 @@ def add_marketplace_alert():
     ingredients = _parse_csv_list(request.form.get("ingredient_watchlist", ""))
     if not buyer_company or not buyer_contact_email or not ingredients:
         flash("Buyer company, contact email, and ingredient watchlist are required.", "error")
-        return redirect(url_for("marketplace_buy"))
+        return redirect(url_for("marketplace"))
     alert = {
         "id": str(uuid.uuid4()),
         "buyer_company": buyer_company,
@@ -1782,7 +1950,7 @@ def add_marketplace_alert():
         )
     else:
         flash("Buyer alert created. Matching listings will trigger as suppliers post.", "success")
-    return redirect(url_for("marketplace_buy"))
+    return redirect(url_for("marketplace"))
 
 
 @app.route("/intake", methods=["GET", "POST"])
@@ -1898,7 +2066,7 @@ def add_touch(lead_id: str):
     return redirect(url_for("lead_detail", lead_id=lead_id))
 
 
-@app.route("/")
+@app.route("/dashboard")
 def index():
     leads = load_leads()
     leads.sort(key=lambda lead: lead.get("created_at", ""), reverse=True)

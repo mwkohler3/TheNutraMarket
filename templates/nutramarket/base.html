@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <meta name="color-scheme" content="light" />
+    <meta name="theme-color" content="#0a0a0a" />
+    <title>{% block title %}{{ site_name }}{% endblock %}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}" />
+  </head>
+  <body class="nm-body">
+    <header class="nm-header">
+      <div class="nm-header__inner">
+        <a class="nm-logo" href="{{ url_for('marketplace_hub') }}">{{ site_name }}</a>
+        {% if marketplace_has_access %}
+          <nav class="nm-header__nav" aria-label="Marketplace">
+            <a href="{{ url_for('marketplace') }}">Live inventory</a>
+            <a href="{{ url_for('marketplace_suppliers') }}">Suppliers</a>
+            <a href="{{ url_for('marketplace_community') }}">Community</a>
+            <a href="{{ url_for('marketplace_terms') }}">Agreement</a>
+          </nav>
+        {% else %}
+          <p class="nm-header__badge">Members only</p>
+        {% endif %}
+      </div>
+    </header>
+
+    <main class="nm-main">
+      {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+          <section class="flash-wrap nm-flash-wrap">
+            {% for category, message in messages %}
+              <p class="flash {{ category }}">{{ message }}</p>
+            {% endfor %}
+          </section>
+        {% endif %}
+      {% endwith %}
+      {% block content %}{% endblock %}
+    </main>
+
+    <footer class="nm-footer">
+      <p class="nm-footer__trust">
+        All listings blind · COA mandatory · {{ marketplace_vig_pct }}% brokerage · Signed agreements
+      </p>
+      <p class="nm-footer__copy">© {{ site_name }}. Brokered B2B ingredient exchange.</p>
+    </footer>
+
+    {% if marketplace_has_access %}
+      {% include "marketplace/_alert_widget.html" %}
+      {% include "floating_assistant.html" %}
+      {% include "floating_assistant_script.html" %}
+    {% endif %}
+  </body>
+</html>

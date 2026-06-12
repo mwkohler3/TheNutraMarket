@@ -1,0 +1,50 @@
+<button
+  type="button"
+  class="nm-alert-fab"
+  id="nm-alert-fab"
+  aria-haspopup="dialog"
+  aria-controls="nm-alert-dialog"
+  aria-label="Set ingredient alerts"
+  title="Ingredient alerts"
+>
+  <svg width="22" height="22" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+    <path fill="currentColor" d="M12 22a2.5 2.5 0 0 0 2.45-2h-4.9A2.5 2.5 0 0 0 12 22Zm7-6V11a7 7 0 0 0-5.6-6.86V3a1.4 1.4 0 1 0-2.8 0v1.14A7 7 0 0 0 5 11v5l-2 2v1h18v-1l-2-2Z"/>
+  </svg>
+</button>
+
+<dialog class="nm-alert-dialog" id="nm-alert-dialog" aria-labelledby="nm-alert-title">
+  <div class="nm-alert-dialog__inner">
+    <button type="button" class="nm-alert-dialog__close" id="nm-alert-close" aria-label="Close">×</button>
+    <h2 id="nm-alert-title">Ingredient alerts</h2>
+    <p class="helper-text">Get emailed when new listings match your watchlist. No charge to browse.</p>
+    <form method="post" action="{{ url_for('add_marketplace_alert') }}" class="grid-form">
+      <label>Company<input type="text" name="buyer_company" required /></label>
+      <label>Contact email<input type="email" name="buyer_contact_email" required /></label>
+      <label class="wide">Ingredients (comma separated)
+        <input type="text" name="ingredient_watchlist" placeholder="Creatine monohydrate, collagen, whey isolate" required />
+      </label>
+      <label>Max price / kg (optional)<input type="number" step="0.01" min="0" name="max_price_per_kg" /></label>
+      <label>Min quantity kg (optional)<input type="number" step="0.01" min="0" name="min_quantity_kg" /></label>
+      <label class="wide">Notes<input type="text" name="notes" placeholder="Region, grade, urgency…" /></label>
+      <button type="submit" class="btn nm-btn">Create alert</button>
+    </form>
+  </div>
+</dialog>
+
+<script>
+(function () {
+  var fab = document.getElementById("nm-alert-fab");
+  var dlg = document.getElementById("nm-alert-dialog");
+  var closeBtn = document.getElementById("nm-alert-close");
+  if (!fab || !dlg) return;
+  fab.addEventListener("click", function () {
+    if (typeof dlg.showModal === "function") dlg.showModal();
+  });
+  if (closeBtn) {
+    closeBtn.addEventListener("click", function () { dlg.close(); });
+  }
+  dlg.addEventListener("click", function (e) {
+    if (e.target === dlg) dlg.close();
+  });
+})();
+</script>

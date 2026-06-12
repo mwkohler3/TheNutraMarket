@@ -14,7 +14,7 @@
   {% if not pending %}
     <section class="panel marketplace-panel">
       <p class="helper-text">
-        To unlock a supplier, go to <a href="{{ url_for('marketplace_buy') }}">Buyers</a>, choose a listing, and click <strong>Continue to agreement</strong>.
+        To unlock a supplier, choose a listing on <a href="{{ url_for('marketplace') }}">Live inventory</a> and click <strong>Request intro</strong>.
         You can still read this document for reference.
       </p>
     </section>
@@ -34,7 +34,7 @@
         {% endif %}
       </p>
       <p class="helper-text">
-        <a href="{{ url_for('commit_marketplace_cancel') }}">Cancel</a> and return to Buyers without recording a commitment.
+        <a href="{{ url_for('commit_marketplace_cancel') }}">Cancel</a> and return to the marketplace without recording a commitment.
       </p>
     </section>
 

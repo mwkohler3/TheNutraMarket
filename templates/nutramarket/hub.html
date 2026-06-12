@@ -1,0 +1,87 @@
+{% extends "nutramarket/base.html" %}
+{% block title %}{{ site_name }} — Private ingredient marketplace{% endblock %}
+
+{% block content %}
+  <section class="nm-hub-hero">
+    <p class="nm-hub-hero__eyebrow">Members only</p>
+    <h1>The private sports nutrition ingredient marketplace</h1>
+    <p class="nm-hub-hero__lead">
+      A brokered exchange where suppliers list overstock and near-expiry ingredients — and serious brands buy at a discount.
+      All listings are blind. All deals are signed. {{ marketplace_vig_pct }}% brokerage on closed transactions.
+    </p>
+  </section>
+
+  <div class="nm-hub-grid">
+    <section class="nm-hub-card" id="access-code">
+      <h2>I have an access code</h2>
+      <p>Enter the code we emailed you when you subscribed or were invited.</p>
+      <form method="post" action="{{ url_for('marketplace_enter') }}" class="nm-hub-form">
+        <label class="nm-hub-form__label">
+          Access code
+          <input type="text" name="access_code" placeholder="NM-XXXXXXXX" required autocomplete="one-time-code" />
+        </label>
+        <button type="submit" class="btn nm-btn">Enter marketplace</button>
+      </form>
+    </section>
+
+    <section class="nm-hub-card" id="supplier">
+      <h2>I need an access code</h2>
+      <ul class="nm-hub-list">
+        <li>
+          <strong>Suppliers</strong> —
+          {% if supplier_launch_free %}
+            <strong>free during our launch period</strong> (normally ${{ supplier_subscription_monthly }}/month) to list inventory.
+            You receive a code by email instantly.
+          {% else %}
+            <strong>${{ supplier_subscription_monthly }}/month</strong> to list inventory. You receive a code after checkout.
+          {% endif %}
+        </li>
+        <li>
+          <strong>Buyers / brands</strong> — request access to browse listings and set ingredient alerts. No charge to browse.
+        </li>
+      </ul>
+      <form method="post" action="{{ url_for('supplier_subscribe') }}" class="nm-hub-form nm-hub-form--supplier">
+        <p class="nm-hub-form__heading">Subscribe as supplier</p>
+        <label class="nm-hub-form__label">
+          Company name
+          <input type="text" name="company_name" required />
+        </label>
+        <label class="nm-hub-form__label">
+          Contact email
+          <input type="email" name="contact_email" required />
+        </label>
+        <label class="nm-hub-form__label">
+          Contact name (optional)
+          <input type="text" name="contact_name" />
+        </label>
+        <label class="nm-hub-form__check">
+          <input type="checkbox" name="ack_amount" value="yes" required />
+          {% if supplier_launch_free %}
+            I understand listing is free during launch and brokerage applies to introduced buyer transactions.
+          {% else %}
+            I agree to the ${{ supplier_subscription_monthly }}/month supplier subscription.
+          {% endif %}
+        </label>
+        <button type="submit" class="btn nm-btn">
+          {% if supplier_launch_free %}Subscribe as supplier — free during launch{% else %}Subscribe as supplier{% endif %}
+        </button>
+      </form>
+      <form method="post" action="{{ url_for('marketplace_buyer_access') }}" class="nm-hub-form nm-hub-form--buyer">
+        <p class="nm-hub-form__heading">Request buyer access</p>
+        <label class="nm-hub-form__label">
+          Company name
+          <input type="text" name="company_name" required />
+        </label>
+        <label class="nm-hub-form__label">
+          Contact email
+          <input type="email" name="contact_email" required />
+        </label>
+        <label class="nm-hub-form__label">
+          Contact name (optional)
+          <input type="text" name="contact_name" />
+        </label>
+        <button type="submit" class="btn nm-btn nm-btn--outline">Request buyer access</button>
+      </form>
+    </section>
+  </div>
+{% endblock %}

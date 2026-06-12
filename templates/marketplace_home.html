@@ -1,86 +1,138 @@
 {% extends "marketplace_layout.html" %}
-{% block marketplace_title %}Marketplace{% endblock %}
+{% block marketplace_title %}Live inventory{% endblock %}
 
 {% block marketplace_body %}
   {% if request.args.get('checkout') == 'canceled' %}
     <p class="helper-text marketplace-checkout-notice">Checkout was canceled—no card was charged.</p>
   {% endif %}
-  <section class="hero marketplace-hero">
-    <p class="marketplace-kicker">Global nutraceutical ingredient exchange</p>
-    <p class="marketplace-hero-listing-count" aria-live="polite">
-      <span class="marketplace-hero-listing-count__value">{{ summary.listings }}</span>
-      <span class="marketplace-hero-listing-count__label">active listing{% if summary.listings != 1 %}s{% endif %}</span>
+
+  <section class="nm-catalog-hero">
+    <p class="nm-catalog-hero__eyebrow">Instant inventory</p>
+    <p class="nm-catalog-hero__count" aria-live="polite">
+      <span class="nm-catalog-hero__count-value">{{ summary.listings }}</span>
+      active listing{% if summary.listings != 1 %}s{% endif %}
     </p>
-    <h2>Move overstock ingredients faster. Alert qualified buyers instantly.</h2>
-    <p class="marketplace-lead">
-      The catalog below is the source of truth for available lots—anonymous supplier codes (SX-…) until you complete the
-      <a href="{{ url_for('marketplace_terms') }}">agreement</a>. Use
-      <a href="{{ url_for('marketplace_buy') }}">buyer tools</a> for alerts and matches,
-      <a href="{{ url_for('marketplace_suppliers') }}">Suppliers</a> to list inventory, and
-      <a href="{{ url_for('marketplace_community') }}">Community</a> for discussion.
-      Closed deals include a <strong>{{ summary.vig_rate_pct }}% brokerage fee</strong>.
+    <h1>Live sports nutrition ingredient lots</h1>
+    <p class="nm-catalog-hero__lead">
+      Blind supplier codes until you sign the <a href="{{ url_for('marketplace_terms') }}">brokerage agreement</a>.
+      Negotiate and pay offline directly. {{ marketplace_vig_pct }}% brokerage on introduced buyer relationships.
     </p>
-    <div class="marketplace-badges">
-      <a class="marketplace-badge" href="#marketplace-live-inventory">Browse listings</a>
-      <a class="marketplace-badge" href="{{ url_for('marketplace_suppliers') }}">Supplier subscriptions</a>
-      <a class="marketplace-badge" href="{{ url_for('marketplace_buy') }}">Buyers</a>
-      <a class="marketplace-badge" href="{{ url_for('marketplace_community') }}">Community</a>
-      <a class="marketplace-badge" href="{{ url_for('marketplace_terms') }}">Agreement</a>
-      <a class="marketplace-badge" href="#marketplace-assistant">AI assistant</a>
-    </div>
   </section>
 
-  <section class="panel marketplace-panel marketplace-overview-inventory" id="marketplace-live-inventory">
-    <h3>Active listings</h3>
-    <p class="helper-text">
-      Every row is a live lot—masked supplier identity and buyer ratings only. Use <strong>Start order</strong> to open the buyer flow with that listing selected (commit → agreement).
-      After the <a href="{{ url_for('marketplace_terms') }}">agreement</a>, the supplier name appears on your match row in
-      <a href="{{ url_for('marketplace_buy') }}">Buyers</a> for the email you used.
-    </p>
+  <section class="panel marketplace-panel nm-catalog" id="marketplace-live-inventory">
+    <div class="nm-catalog__head">
+      <h2>Active listings</h2>
+      <p class="helper-text">COA-backed lots · masked suppliers · click <strong>Request intro</strong> to start</p>
+    </div>
     {% if listings %}
       <div class="table-responsive">
-      <table class="playbook-table marketplace-listings-table">
-        <thead>
-          <tr>
-            <th>Ingredient</th>
-            <th>Supplier (masked)</th>
-            <th>Buyer rating</th>
-            <th>COA</th>
-            <th>Price / kg</th>
-            <th>Quantity kg</th>
-            <th>Expiry</th>
-            <th scope="col">Order</th>
-          </tr>
-        </thead>
-        <tbody>
-          {% for listing in listings %}
+        <table class="playbook-table marketplace-listings-table nm-listings-table">
+          <thead>
             <tr>
-              <td>{{ listing.ingredient }}</td>
-              <td>{{ listing.supplier_public_name }}</td>
-              <td class="marketplace-rating-cell">{{ listing.supplier_rating_display }}</td>
-              <td>{{ listing.coa_document }}</td>
-              <td>${{ "%.2f"|format(listing.price_per_kg) }}</td>
-              <td>{{ "%.0f"|format(listing.quantity_kg) }}</td>
-              <td>{{ listing.expires_on or "N/A" }}</td>
-              <td>
-                <a class="marketplace-order-link" href="{{ url_for('marketplace_buy', listing=listing.id) }}#order-flow">Start order</a>
-              </td>
+              <th>Ingredient</th>
+              <th>Supplier</th>
+              <th>Rating</th>
+              <th>COA</th>
+              <th>Price / kg</th>
+              <th>Qty kg</th>
+              <th>Expiry</th>
+              <th scope="col"></th>
             </tr>
-          {% endfor %}
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            {% for listing in listings %}
+              <tr>
+                <td><strong>{{ listing.ingredient }}</strong></td>
+                <td>{{ listing.supplier_public_name }}</td>
+                <td class="marketplace-rating-cell">{{ listing.supplier_rating_display }}</td>
+                <td>{{ listing.coa_document }}</td>
+                <td>${{ "%.2f"|format(listing.price_per_kg) }}</td>
+                <td>{{ "%.0f"|format(listing.quantity_kg) }}</td>
+                <td>{{ listing.expires_on or "—" }}</td>
+                <td>
+                  <a class="marketplace-order-link nm-btn nm-btn--sm" href="{{ url_for('marketplace', listing=listing.id) }}#order-flow">Request intro</a>
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
       </div>
     {% else %}
-      <p class="helper-text">No listings yet—suppliers can publish from <a href="{{ url_for('marketplace_suppliers') }}">Suppliers</a>.</p>
+      <p class="helper-text">No live lots yet. <a href="{{ url_for('marketplace_suppliers') }}">Suppliers</a> can publish inventory.</p>
     {% endif %}
-    <div class="marketplace-next-steps">
-      <p class="marketplace-next-steps-label">Next steps</p>
-      <ul class="marketplace-hub-linklist">
-        <li><a href="{{ url_for('marketplace_buy') }}">Buyers</a> — watchlist, matches, commit → agreement.</li>
-        <li><a href="{{ url_for('marketplace_suppliers') }}">Suppliers</a> — subscribe and list inventory.</li>
-        <li><a href="{{ url_for('marketplace_community') }}">Community</a> — procurement forum.</li>
-        <li><a href="{{ url_for('marketplace_terms') }}">Agreement</a> — contractual terms and signing.</li>
-      </ul>
-    </div>
   </section>
+
+  {% if matches %}
+    <section class="panel marketplace-panel">
+      <h2>Your matches</h2>
+      <div class="table-responsive">
+        <table class="playbook-table">
+          <thead>
+            <tr>
+              <th>Ingredient</th>
+              <th>Supplier</th>
+              <th>Price / kg</th>
+              <th>Qty kg</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for match in matches[:12] %}
+              <tr>
+                <td>{{ match.ingredient }}</td>
+                <td>{{ match.supplier_company_masked }}</td>
+                <td>${{ "%.2f"|format(match.price_per_kg) }}</td>
+                <td>{{ "%.0f"|format(match.quantity_kg) }}</td>
+                <td>
+                  {% if match.listing_id %}
+                    <a class="marketplace-order-link" href="{{ url_for('marketplace', listing=match.listing_id) }}#order-flow">Request intro</a>
+                  {% endif %}
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </section>
+  {% endif %}
+
+  <section class="panel marketplace-panel" id="order-flow">
+    <h2>Request introduction (step 1 of 2)</h2>
+    <p class="helper-text">
+      Submit your RFQ. We match you with the supplier. Before the supplier receives your details, they sign our brokerage agreement.
+      You negotiate and pay offline; future transactions between introduced parties include {{ marketplace_vig_pct }}% brokerage.
+    </p>
+    {% if prefill_listing_id %}
+      {% set picked = (listings | selectattr('id', 'equalto', prefill_listing_id) | list | first) %}
+      {% if picked %}
+        <p class="helper-text" role="status">
+          Selected lot: <strong>{{ picked.ingredient }}</strong> — ${{ "%.2f"|format(picked.price_per_kg) }}/kg
+        </p>
+      {% endif %}
+    {% endif %}
+    <form method="post" action="{{ url_for('commit_marketplace_begin') }}" class="grid-form" id="order-flow-form">
+      <label>
+        Listing
+        <select name="listing_id" id="order-flow-listing" required>
+          <option value="">Select listing…</option>
+          {% for listing in listings %}
+            <option value="{{ listing.id }}" {% if prefill_listing_id == listing.id %}selected{% endif %}>
+              {{ listing.ingredient }} — ${{ "%.2f"|format(listing.price_per_kg) }}/kg — {{ "%.0f"|format(listing.quantity_kg) }} kg
+            </option>
+          {% endfor %}
+        </select>
+      </label>
+      <label>Your company<input type="text" name="buyer_company" required /></label>
+      <label>Contact email<input type="email" name="buyer_contact_email" required /></label>
+      <button type="submit" class="btn nm-btn">Continue to agreement</button>
+    </form>
+  </section>
+
+  <script>
+  (function () {
+    if (window.location.hash !== "#order-flow") return;
+    var el = document.getElementById("order-flow");
+    if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
+  })();
+  </script>
 {% endblock %}
