@@ -1,18 +1,34 @@
 {% extends "marketplace_layout.html" %}
-{% block marketplace_title %}Shop all{% endblock %}
+{% block marketplace_title %}{% if marketplace_mode == 'auction' %}Live deal flow{% else %}Shop now{% endif %}{% endblock %}
 
 {% block marketplace_body %}
-  <section class="wb-page-head">
-    <h1>{{ site_name }} selections</h1>
-    <p>{{ listings|length }} live lot{% if listings|length != 1 %}s{% endif %} from onboarded suppliers</p>
+  {% if marketplace_mode == 'auction' %}
+    <section class="wb-deal-hero">
+      <p class="wb-deal-hero__eyebrow">Live deal flow</p>
+      <h1 class="wb-deal-hero__title">Bid on overstock lots moving now</h1>
+      <p class="wb-deal-hero__lead">
+        {{ listings|length }} open auction{% if listings|length != 1 %}s{% endif %} from onboarded suppliers — discounted inventory that needs to move fast.
+      </p>
+      <a class="wb-btn wb-deal-hero__cta" href="#bid-flow">Place a bid</a>
+    </section>
+  {% else %}
+    <section class="wb-page-head">
+      <h1>Shop now</h1>
+      <p>{{ listings|length }} flat-rate lot{% if listings|length != 1 %}s{% endif %} from onboarded suppliers</p>
+    </section>
+  {% endif %}
+
+  <section class="wb-mode-tabs" aria-label="Browse mode">
+    <a class="wb-mode-tab {% if marketplace_mode == 'auction' %}is-active{% endif %}" href="{{ url_for('marketplace', category=filter_category or none, q=filter_q or none) }}">Live deal flow</a>
+    <a class="wb-mode-tab {% if marketplace_mode == 'buy_now' %}is-active{% endif %}" href="{{ url_for('marketplace', mode='buy_now', category=filter_category or none, q=filter_q or none) }}">Shop now</a>
   </section>
 
   <section class="wb-toolbar">
     <div class="wb-filter-chips" role="tablist" aria-label="Category">
-      <a class="wb-chip {% if not filter_category %}is-active{% endif %}" href="{{ url_for('marketplace', q=filter_q or none) }}">All</a>
-      <a class="wb-chip {% if filter_category == 'Ingredient' %}is-active{% endif %}" href="{{ url_for('marketplace', category='Ingredient', q=filter_q or none) }}">Ingredients</a>
-      <a class="wb-chip {% if filter_category == 'Flavoring' %}is-active{% endif %}" href="{{ url_for('marketplace', category='Flavoring', q=filter_q or none) }}">Flavorings</a>
-      <a class="wb-chip {% if filter_category == 'Packaging' %}is-active{% endif %}" href="{{ url_for('marketplace', category='Packaging', q=filter_q or none) }}">Packaging</a>
+      <a class="wb-chip {% if not filter_category %}is-active{% endif %}" href="{{ url_for('marketplace', mode='buy_now' if marketplace_mode == 'buy_now' else none, category=none, q=filter_q or none) }}">All</a>
+      <a class="wb-chip {% if filter_category == 'Ingredient' %}is-active{% endif %}" href="{{ url_for('marketplace', mode='buy_now' if marketplace_mode == 'buy_now' else none, category='Ingredient', q=filter_q or none) }}">Ingredients</a>
+      <a class="wb-chip {% if filter_category == 'Flavoring' %}is-active{% endif %}" href="{{ url_for('marketplace', mode='buy_now' if marketplace_mode == 'buy_now' else none, category='Flavoring', q=filter_q or none) }}">Flavorings</a>
+      <a class="wb-chip {% if filter_category == 'Packaging' %}is-active{% endif %}" href="{{ url_for('marketplace', mode='buy_now' if marketplace_mode == 'buy_now' else none, category='Packaging', q=filter_q or none) }}">Packaging</a>
     </div>
   </section>
 
@@ -23,42 +39,82 @@
       {% endfor %}
     </div>
   {% else %}
-    <p class="wb-empty">No lots match your filters. <a href="{{ url_for('marketplace') }}">Clear filters</a></p>
+    <p class="wb-empty">
+      {% if marketplace_mode == 'auction' %}
+        No open auctions match your filters. <a href="{{ url_for('marketplace') }}">Clear filters</a> or browse <a href="{{ url_for('marketplace', mode='buy_now') }}">flat-rate shop listings</a>.
+      {% else %}
+        No lots match your filters. <a href="{{ url_for('marketplace', mode='buy_now') }}">Clear filters</a>
+      {% endif %}
+    </p>
   {% endif %}
 
-  <section class="wb-panel wb-order" id="order-flow">
-    <h2>Request introduction</h2>
-    <p class="wb-panel__lead">Connect with the onboarded supplier. All commercial terms are agreed directly between you and the supplier.</p>
-    {% if prefill_listing_id %}
-      {% set picked = (listings | selectattr('id', 'equalto', prefill_listing_id) | list | first) %}
-      {% if picked %}
-        <p class="wb-order-selected" role="status">
-          Selected: <strong>{{ picked.ingredient }}</strong> · {{ picked.supplier_public_name }} · {{ picked.price_display }}
-        </p>
+  {% if marketplace_mode == 'auction' %}
+    <section class="wb-panel wb-order" id="bid-flow">
+      <h2>Place a bid</h2>
+      <p class="wb-panel__lead">Bid on overstock lots. Winning bidders complete terms directly with the onboarded supplier.</p>
+      {% if prefill_listing_id %}
+        {% set picked = (listings | selectattr('id', 'equalto', prefill_listing_id) | list | first) %}
+        {% if picked %}
+          <p class="wb-order-selected" role="status">
+            Selected: <strong>{{ picked.ingredient }}</strong> · {{ picked.supplier_public_name }} ·
+            current {{ picked.price_display }} · min next ${{ '%.2f'|format(picked.min_next_bid_per_kg) }}
+          </p>
+        {% endif %}
       {% endif %}
-    {% endif %}
-    <form method="post" action="{{ url_for('commit_marketplace_begin') }}" class="wb-form" id="order-flow-form">
-      <label>
-        Listing
-        <select name="listing_id" required>
-          <option value="">Select listing…</option>
-          {% for listing in listings %}
-            <option value="{{ listing.id }}" {% if prefill_listing_id == listing.id %}selected{% endif %}>
-              {{ listing.ingredient }} — {{ listing.supplier_public_name }}
-            </option>
-          {% endfor %}
-        </select>
-      </label>
-      <label>Your company<input type="text" name="buyer_company" required /></label>
-      <label>Contact email<input type="email" name="buyer_contact_email" required /></label>
-      <button type="submit" class="wb-btn">Continue to supplier terms</button>
-    </form>
-  </section>
+      <form method="post" action="{{ url_for('place_marketplace_bid') }}" class="wb-form" id="bid-flow-form">
+        <label>
+          Auction lot
+          <select name="listing_id" required>
+            <option value="">Select lot…</option>
+            {% for listing in listings %}
+              <option value="{{ listing.id }}" {% if prefill_listing_id == listing.id %}selected{% endif %}>
+                {{ listing.ingredient }} — {{ listing.supplier_public_name }} (min ${{ '%.2f'|format(listing.min_next_bid_per_kg) }})
+              </option>
+            {% endfor %}
+          </select>
+        </label>
+        <label>Bid amount (per unit)<input type="number" step="0.01" min="0" name="bid_per_kg" required /></label>
+        <label>Your company<input type="text" name="bidder_company" required /></label>
+        <label>Contact email<input type="email" name="bidder_contact_email" required /></label>
+        <button type="submit" class="wb-btn">Submit bid</button>
+      </form>
+    </section>
+  {% else %}
+    <section class="wb-panel wb-order" id="order-flow">
+      <h2>Request introduction</h2>
+      <p class="wb-panel__lead">Connect with the onboarded supplier. All commercial terms are agreed directly between you and the supplier.</p>
+      {% if prefill_listing_id %}
+        {% set picked = (listings | selectattr('id', 'equalto', prefill_listing_id) | list | first) %}
+        {% if picked %}
+          <p class="wb-order-selected" role="status">
+            Selected: <strong>{{ picked.ingredient }}</strong> · {{ picked.supplier_public_name }} · {{ picked.price_display }}
+          </p>
+        {% endif %}
+      {% endif %}
+      <form method="post" action="{{ url_for('commit_marketplace_begin') }}" class="wb-form" id="order-flow-form">
+        <label>
+          Listing
+          <select name="listing_id" required>
+            <option value="">Select listing…</option>
+            {% for listing in listings %}
+              <option value="{{ listing.id }}" {% if prefill_listing_id == listing.id %}selected{% endif %}>
+                {{ listing.ingredient }} — {{ listing.supplier_public_name }}
+              </option>
+            {% endfor %}
+          </select>
+        </label>
+        <label>Your company<input type="text" name="buyer_company" required /></label>
+        <label>Contact email<input type="email" name="buyer_contact_email" required /></label>
+        <button type="submit" class="wb-btn">Continue to supplier terms</button>
+      </form>
+    </section>
+  {% endif %}
 
   <script>
   (function () {
-    if (window.location.hash === "#order-flow") {
-      var el = document.getElementById("order-flow");
+    var hash = window.location.hash;
+    if (hash === "#order-flow" || hash === "#bid-flow") {
+      var el = document.querySelector(hash);
       if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
     }
   })();

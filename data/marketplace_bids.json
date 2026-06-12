@@ -1,0 +1,50 @@
+[
+  {
+    "id": "demo-bid-001",
+    "listing_id": "demo-listing-001",
+    "bidder_company": "Demo Buyer 1",
+    "bidder_contact_email": "buyer1@example.com",
+    "bid_per_kg": 3.49,
+    "created_at": "2026-06-13T10:00:00"
+  },
+  {
+    "id": "demo-bid-002",
+    "listing_id": "demo-listing-003",
+    "bidder_company": "Demo Buyer 2",
+    "bidder_contact_email": "buyer2@example.com",
+    "bid_per_kg": 5.58,
+    "created_at": "2026-06-13T11:00:00"
+  },
+  {
+    "id": "demo-bid-003",
+    "listing_id": "demo-listing-004",
+    "bidder_company": "Demo Buyer 3",
+    "bidder_contact_email": "buyer3@example.com",
+    "bid_per_kg": 4.23,
+    "created_at": "2026-06-13T12:00:00"
+  },
+  {
+    "id": "demo-bid-004",
+    "listing_id": "demo-listing-005",
+    "bidder_company": "Demo Buyer 4",
+    "bidder_contact_email": "buyer4@example.com",
+    "bid_per_kg": 6.12,
+    "created_at": "2026-06-13T13:00:00"
+  },
+  {
+    "id": "demo-bid-005",
+    "listing_id": "demo-listing-009",
+    "bidder_company": "Demo Buyer 5",
+    "bidder_contact_email": "buyer5@example.com",
+    "bid_per_kg": 4.11,
+    "created_at": "2026-06-13T14:00:00"
+  },
+  {
+    "id": "demo-bid-006",
+    "listing_id": "demo-listing-014",
+    "bidder_company": "Demo Buyer 6",
+    "bidder_contact_email": "buyer6@example.com",
+    "bid_per_kg": 2.67,
+    "created_at": "2026-06-13T15:00:00"
+  }
+]

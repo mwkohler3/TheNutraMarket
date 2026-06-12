@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from collections import deque
-from datetime import date, datetime
+from datetime import date, datetime, timedelta
 import os
 from pathlib import Path
 import json
@@ -40,6 +40,17 @@ MARKETPLACE_FORUM_THREADS_FILE = DATA_DIR / "marketplace_forum_threads.json"
 MARKETPLACE_SUPPLIER_RATINGS_FILE = DATA_DIR / "marketplace_supplier_ratings.json"
 MARKETPLACE_AGREEMENT_SUBMISSIONS_FILE = DATA_DIR / "marketplace_agreement_submissions.json"
 MARKETPLACE_BUYER_ACCESS_FILE = DATA_DIR / "marketplace_buyer_access_requests.json"
+MARKETPLACE_BIDS_FILE = DATA_DIR / "marketplace_bids.json"
+AUCTION_NOTE_KEYWORDS = (
+    "48-hour",
+    "liquidation",
+    "urgent",
+    "best bid",
+    "overstock",
+    "clearance",
+    "surplus",
+)
+DEFAULT_BID_INCREMENT = 0.05
 MARKETPLACE_VIG_RATE = 0.05
 SUPPLIER_SUBSCRIPTION_MONTHLY_USD = 100.0
 SUPPLIER_LAUNCH_FREE = os.environ.get("SUPPLIER_LAUNCH_FREE", "1").lower() in ("1", "true", "yes")
@@ -362,6 +373,8 @@ def ensure_data_store() -> None:
         MARKETPLACE_AGREEMENT_SUBMISSIONS_FILE.write_text("[]", encoding="utf-8")
     if not MARKETPLACE_BUYER_ACCESS_FILE.exists():
         MARKETPLACE_BUYER_ACCESS_FILE.write_text("[]", encoding="utf-8")
+    if not MARKETPLACE_BIDS_FILE.exists():
+        MARKETPLACE_BIDS_FILE.write_text("[]", encoding="utf-8")
 
 
 def _safe_load_json_list(path: Path) -> list[dict]:
@@ -403,6 +416,14 @@ def load_marketplace_commits() -> list[dict]:
 
 def save_marketplace_commits(commits: list[dict]) -> None:
     MARKETPLACE_COMMITS_FILE.write_text(json.dumps(commits, indent=2), encoding="utf-8")
+
+
+def load_marketplace_bids() -> list[dict]:
+    return _safe_load_json_list(MARKETPLACE_BIDS_FILE)
+
+
+def save_marketplace_bids(bids: list[dict]) -> None:
+    MARKETPLACE_BIDS_FILE.write_text(json.dumps(bids, indent=2), encoding="utf-8")
 
 
 def load_agreement_submissions() -> list[dict]:
@@ -970,6 +991,104 @@ def build_marketplace_summary() -> dict:
     }
 
 
+def listing_sale_mode(listing: dict) -> str:
+    mode = str(listing.get("sale_mode") or "").strip().lower()
+    if mode in ("buy_now", "auction"):
+        return mode
+    notes = (listing.get("notes") or "").lower()
+    if any(k in notes for k in AUCTION_NOTE_KEYWORDS):
+        return "auction"
+    return "buy_now"
+
+
+def listing_starting_bid_per_kg(listing: dict) -> float:
+    raw = listing.get("starting_bid_per_kg")
+    if raw is not None:
+        return float(raw)
+    return round(float(listing.get("price_per_kg") or 0) * 0.82, 2)
+
+
+def listing_bid_increment(listing: dict) -> float:
+    raw = listing.get("bid_increment")
+    if raw is not None:
+        return float(raw)
+    price = float(listing.get("price_per_kg") or 0)
+    if price >= 20:
+        return 0.25
+    if price >= 10:
+        return 0.10
+    return DEFAULT_BID_INCREMENT
+
+
+def listing_auction_ends_at(listing: dict) -> datetime | None:
+    raw = listing.get("auction_ends_at")
+    if raw:
+        try:
+            return datetime.fromisoformat(str(raw).replace("Z", "+00:00")[:19])
+        except ValueError:
+            pass
+    expires = listing.get("expires_on")
+    if expires:
+        try:
+            return datetime.combine(date.fromisoformat(str(expires)[:10]), datetime.max.time()).replace(
+                hour=23, minute=59, second=0, microsecond=0
+            )
+        except ValueError:
+            pass
+    created = listing.get("created_at")
+    if created:
+        try:
+            return datetime.fromisoformat(str(created)[:19]) + timedelta(days=3)
+        except ValueError:
+            pass
+    return None
+
+
+def bids_for_listing(listing_id: str, bids: list[dict] | None = None) -> list[dict]:
+    rows = bids if bids is not None else load_marketplace_bids()
+    return [b for b in rows if str(b.get("listing_id")) == str(listing_id)]
+
+
+def current_bid_per_kg(listing: dict, bids: list[dict] | None = None) -> float:
+    listing_bids = bids_for_listing(str(listing.get("id")), bids)
+    if not listing_bids:
+        return listing_starting_bid_per_kg(listing)
+    return max(float(b.get("bid_per_kg") or 0) for b in listing_bids)
+
+
+def min_next_bid_per_kg(listing: dict, bids: list[dict] | None = None) -> float:
+    current = current_bid_per_kg(listing, bids)
+    starting = listing_starting_bid_per_kg(listing)
+    increment = listing_bid_increment(listing)
+    if not bids_for_listing(str(listing.get("id")), bids):
+        return starting
+    return round(current + increment, 2)
+
+
+def auction_is_open(listing: dict, now: datetime | None = None) -> bool:
+    if listing_sale_mode(listing) != "auction":
+        return False
+    ends = listing_auction_ends_at(listing)
+    if not ends:
+        return True
+    ref = now or datetime.now()
+    return ref <= ends
+
+
+def auction_time_left_label(listing: dict, now: datetime | None = None) -> str:
+    ends = listing_auction_ends_at(listing)
+    if not ends:
+        return "Open auction"
+    ref = now or datetime.now()
+    if ref > ends:
+        return "Auction ended"
+    delta = ends - ref
+    if delta.days >= 1:
+        return f"{delta.days} day{'s' if delta.days != 1 else ''} left"
+    hours = max(1, int(delta.total_seconds() // 3600))
+    return f"{hours} hour{'s' if hours != 1 else ''} left"
+
+
 def listing_display_badge(listing: dict) -> str:
     notes = (listing.get("notes") or "").lower()
     qty = float(listing.get("quantity_kg") or 0)
@@ -993,38 +1112,64 @@ def listing_days_left(expires_on: str | None) -> int | None:
         return None
 
 
-def listings_for_marketplace_view() -> list[dict]:
+def listings_for_marketplace_view(sale_mode: str | None = None) -> list[dict]:
     """Public catalog rows with supplier name, category, WineBid-style display fields."""
     ensure_all_listing_supplier_codes()
     listings = sorted(load_marketplace_listings(), key=lambda x: x.get("created_at", ""), reverse=True)
+    all_bids = load_marketplace_bids()
     rating_agg = build_supplier_rating_aggregates()
     out: list[dict] = []
     for listing in listings:
+        mode = listing_sale_mode(listing)
+        if sale_mode and mode != sale_mode:
+            continue
+        if sale_mode == "auction" and not auction_is_open(listing):
+            continue
         item = dict(listing)
         code = str(listing.get("supplier_public_code") or "")
         agg = rating_agg.get(code)
         unit = str(listing.get("unit") or "kg").lower()
         price = float(listing.get("price_per_kg") or 0)
         qty = float(listing.get("quantity_kg") or 0)
+        item["sale_mode"] = mode
         item["supplier_public_code"] = code
         item["supplier_rating_display"] = format_supplier_rating_pill(agg)
         item["supplier_public_name"] = str(listing.get("supplier_company") or "Supplier")
         item["category"] = str(listing.get("category") or "Ingredient")
         item["unit"] = unit
-        item["badge"] = listing_display_badge(listing)
+        item["badge"] = "Auction" if mode == "auction" else listing_display_badge(listing)
         days = listing_days_left(listing.get("expires_on"))
         item["days_left"] = days
         item["days_left_label"] = f"{days} days left" if days is not None else "Open lot"
+        listing_bids = bids_for_listing(str(listing.get("id")), all_bids)
+        item["bid_count"] = len(listing_bids)
+        item["auction_open"] = auction_is_open(listing)
+        item["auction_time_left_label"] = auction_time_left_label(listing)
+        item["starting_bid_per_kg"] = listing_starting_bid_per_kg(listing)
+        item["bid_increment"] = listing_bid_increment(listing)
+        item["current_bid_per_kg"] = current_bid_per_kg(listing, all_bids)
+        item["min_next_bid_per_kg"] = min_next_bid_per_kg(listing, all_bids)
         if unit == "kg":
-            item["price_amount"] = f"${price:,.2f}"
-            item["price_unit_label"] = "per kg"
             item["quantity_display"] = f"{qty:,.0f} kg available"
         else:
-            item["price_amount"] = f"${price:,.2f}"
-            item["price_unit_label"] = "per unit"
             item["quantity_display"] = f"{qty:,.0f} units available"
-        item["price_display"] = f"{item['price_amount']}/{unit if unit != 'kg' else 'kg'}"
+        if mode == "auction":
+            current = item["current_bid_per_kg"]
+            item["price_amount"] = f"${current:,.2f}"
+            item["price_unit_label"] = f"current bid per {unit if unit != 'kg' else 'kg'}"
+            item["compare_price_display"] = f"${price:,.2f}/{unit if unit != 'kg' else 'kg'} list"
+            item["price_display"] = f"${current:,.2f}/{unit if unit != 'kg' else 'kg'}"
+            item["time_label"] = item["auction_time_left_label"]
+        else:
+            item["price_amount"] = f"${price:,.2f}"
+            item["price_unit_label"] = f"per {unit if unit != 'kg' else 'kg'}"
+            item["price_display"] = f"${price:,.2f}/{unit if unit != 'kg' else 'kg'}"
+            item["time_label"] = item["days_left_label"]
         out.append(item)
+    if sale_mode == "auction":
+        out.sort(
+            key=lambda x: listing_auction_ends_at(x) or datetime.max,
+        )
     return out
 
 
@@ -1324,6 +1469,13 @@ def inject_form_choices() -> dict:
         "site_tagline": SITE_TAGLINE,
         "site_legal_name": SITE_LEGAL_NAME,
         "marketplace_has_access": marketplace_has_access(),
+        "marketplace_mode": (
+            (lambda m: m if m in ("buy_now", "auction") else "auction")(
+                request.args.get("mode", "auction").strip().lower()
+            )
+            if (request.path or "").startswith("/marketplace") and request.endpoint == "marketplace"
+            else "auction"
+        ),
     }
 
 
@@ -1414,7 +1566,10 @@ def legal_agreements():
 @app.route("/marketplace")
 def marketplace():
     summary = build_marketplace_summary()
-    listings_for_view = listings_for_marketplace_view()
+    mode = request.args.get("mode", "auction").strip().lower()
+    if mode not in ("buy_now", "auction"):
+        mode = "auction"
+    listings_for_view = listings_for_marketplace_view(sale_mode=mode)
     q = request.args.get("q", "").strip().lower()
     cat = request.args.get("category", "").strip()
     if cat:
@@ -1437,9 +1592,57 @@ def marketplace():
         matches=matches,
         prefill_listing_id=prefill_listing_id,
         marketplace_nav_active="marketplace",
+        marketplace_mode=mode,
         filter_q=q,
         filter_category=cat,
     )
+
+
+@app.route("/marketplace/auctions")
+def marketplace_auctions():
+    args = {k: v for k, v in request.args.items() if k != "mode"}
+    return redirect(url_for("marketplace", mode="auction", **args))
+
+
+@app.route("/marketplace/bid", methods=["POST"])
+def place_marketplace_bid():
+    listing_id = request.form.get("listing_id", "").strip()
+    company = request.form.get("bidder_company", "").strip()
+    email = request.form.get("bidder_contact_email", "").strip()
+    bid_per_kg = _num_or_none(request.form.get("bid_per_kg", ""))
+    if not listing_id or not company or not email or bid_per_kg is None:
+        flash("Listing, company, email, and bid amount are required.", "error")
+        return redirect(url_for("marketplace", mode="auction", listing=listing_id or None))
+    listings = load_marketplace_listings()
+    listing = next((x for x in listings if str(x.get("id")) == listing_id), None)
+    if not listing or listing_sale_mode(listing) != "auction":
+        flash("That lot is not an open auction.", "error")
+        return redirect(url_for("marketplace", mode="auction"))
+    if not auction_is_open(listing):
+        flash("This auction has ended.", "error")
+        return redirect(url_for("marketplace", mode="auction"))
+    min_bid = min_next_bid_per_kg(listing)
+    if bid_per_kg + 1e-9 < min_bid:
+        flash(f"Minimum bid is ${min_bid:,.2f} per unit.", "error")
+        return redirect(url_for("marketplace", mode="auction", listing=listing_id) + "#bid-flow")
+    bids = load_marketplace_bids()
+    bids.append(
+        {
+            "id": str(uuid.uuid4()),
+            "listing_id": listing_id,
+            "bidder_company": company,
+            "bidder_contact_email": email,
+            "bid_per_kg": bid_per_kg,
+            "created_at": datetime.now().isoformat(timespec="seconds"),
+        }
+    )
+    save_marketplace_bids(bids)
+    flash(
+        f"Bid recorded at ${bid_per_kg:,.2f} on {listing.get('ingredient')}. "
+        "Winning bidders complete terms directly with the supplier.",
+        "success",
+    )
+    return redirect(url_for("marketplace", mode="auction", listing=listing_id) + "#bid-flow")
 
 
 @app.route("/marketplace/listings")
@@ -1823,6 +2026,9 @@ def add_marketplace_listing():
     quantity_kg = _num_or_none(request.form.get("quantity_kg", ""))
     coa_document = request.form.get("coa_document", "").strip()
     category = request.form.get("category", "Ingredient").strip() or "Ingredient"
+    sale_mode = request.form.get("sale_mode", "buy_now").strip().lower()
+    if sale_mode not in ("buy_now", "auction"):
+        sale_mode = "buy_now"
     if category not in ("Ingredient", "Flavoring", "Packaging"):
         category = "Ingredient"
     if not supplier_company or not supplier_contact_email or not ingredient or price_per_kg is None or quantity_kg is None or not coa_document:
@@ -1848,7 +2054,18 @@ def add_marketplace_listing():
         "expires_on": request.form.get("expires_on", "").strip(),
         "notes": request.form.get("notes", "").strip(),
         "created_at": datetime.now().isoformat(timespec="seconds"),
+        "sale_mode": sale_mode,
     }
+    if sale_mode == "auction":
+        starting_bid = _num_or_none(request.form.get("starting_bid_per_kg", ""))
+        auction_days_raw = request.form.get("auction_days", "3").strip()
+        try:
+            auction_days = max(1, min(14, int(auction_days_raw)))
+        except ValueError:
+            auction_days = 3
+        listing["starting_bid_per_kg"] = starting_bid if starting_bid is not None else round(price_per_kg * 0.82, 2)
+        listing["bid_increment"] = listing_bid_increment(listing)
+        listing["auction_ends_at"] = (datetime.now() + timedelta(days=auction_days)).isoformat(timespec="seconds")
     listings = load_marketplace_listings()
     listings.append(listing)
     save_marketplace_listings(listings)

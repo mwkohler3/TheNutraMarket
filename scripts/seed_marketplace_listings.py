@@ -10,6 +10,17 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 LISTINGS_FILE = ROOT / "data" / "marketplace_listings.json"
 SUBS_FILE = ROOT / "data" / "marketplace_supplier_subscriptions.json"
+BIDS_FILE = ROOT / "data" / "marketplace_bids.json"
+
+AUCTION_NOTE_KEYWORDS = (
+    "48-hour",
+    "liquidation",
+    "urgent",
+    "best bid",
+    "overstock",
+    "clearance",
+    "surplus",
+)
 
 SUPPLIERS = [
     ("Nordic Actives BV", "supply@nordicactives.example", "SX-NORD01"),
@@ -89,7 +100,7 @@ PRODUCTS = [
 
 
 def main() -> None:
-    base_date = datetime(2026, 6, 1, 10, 0, 0)
+    base_date = datetime.now().replace(hour=10, minute=0, second=0, microsecond=0)
     subs = []
     for i, (company, email, code) in enumerate(SUPPLIERS):
         subs.append(
@@ -111,27 +122,54 @@ def main() -> None:
     for i, (category, name, unit, price, qty, coa, notes) in enumerate(PRODUCTS):
         supplier = SUPPLIERS[i % len(SUPPLIERS)]
         company, email, code = supplier
-        listings.append(
+        notes_lower = notes.lower()
+        is_auction = any(k in notes_lower for k in AUCTION_NOTE_KEYWORDS)
+        row = {
+            "id": f"demo-listing-{i + 1:03d}",
+            "category": category,
+            "supplier_company": company,
+            "supplier_contact_email": email,
+            "ingredient": name,
+            "unit": unit,
+            "price_per_kg": price,
+            "quantity_kg": float(qty),
+            "coa_document": coa,
+            "expires_on": (base_date + timedelta(days=60 + (i * 3) % 180)).strftime("%Y-%m-%d"),
+            "notes": notes,
+            "created_at": (base_date + timedelta(hours=i)).isoformat(timespec="seconds"),
+            "supplier_public_code": code,
+            "sale_mode": "auction" if is_auction else "buy_now",
+        }
+        if is_auction:
+            row["starting_bid_per_kg"] = round(price * 0.82, 2)
+            row["bid_increment"] = 0.25 if price >= 20 else (0.10 if price >= 10 else 0.05)
+            row["auction_ends_at"] = (base_date + timedelta(days=2 + (i % 5), hours=12 + (i % 8))).isoformat(
+                timespec="seconds"
+            )
+        listings.append(row)
+
+    bids = []
+    auction_ids = [x["id"] for x in listings if x["sale_mode"] == "auction"][:6]
+    for j, listing_id in enumerate(auction_ids):
+        listing = next(x for x in listings if x["id"] == listing_id)
+        start = float(listing["starting_bid_per_kg"])
+        inc = float(listing["bid_increment"])
+        bids.append(
             {
-                "id": f"demo-listing-{i + 1:03d}",
-                "category": category,
-                "supplier_company": company,
-                "supplier_contact_email": email,
-                "ingredient": name,
-                "unit": unit,
-                "price_per_kg": price,
-                "quantity_kg": float(qty),
-                "coa_document": coa,
-                "expires_on": (base_date + timedelta(days=60 + (i * 3) % 180)).strftime("%Y-%m-%d"),
-                "notes": notes,
-                "created_at": (base_date + timedelta(hours=i)).isoformat(timespec="seconds"),
-                "supplier_public_code": code,
+                "id": f"demo-bid-{j + 1:03d}",
+                "listing_id": listing_id,
+                "bidder_company": f"Demo Buyer {j + 1}",
+                "bidder_contact_email": f"buyer{j + 1}@example.com",
+                "bid_per_kg": round(start + inc, 2),
+                "created_at": (base_date + timedelta(days=1, hours=j)).isoformat(timespec="seconds"),
             }
         )
 
     LISTINGS_FILE.write_text(json.dumps(listings, indent=2), encoding="utf-8")
     SUBS_FILE.write_text(json.dumps(subs, indent=2), encoding="utf-8")
-    print(f"Wrote {len(listings)} listings and {len(subs)} supplier subscriptions.")
+    BIDS_FILE.write_text(json.dumps(bids, indent=2), encoding="utf-8")
+    auction_count = sum(1 for x in listings if x["sale_mode"] == "auction")
+    print(f"Wrote {len(listings)} listings ({auction_count} auctions), {len(subs)} suppliers, {len(bids)} demo bids.")
 
 
 if __name__ == "__main__":

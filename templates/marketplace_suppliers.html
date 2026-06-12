@@ -4,7 +4,7 @@
 {% block marketplace_body %}
   <section class="wb-page-head">
     <h1>List inventory</h1>
-    <p>{% if supplier_launch_free %}Free during launch.{% else %}Active enrollment required.{% endif %} Deals and contracts are between you and the buyer.</p>
+    <p>{% if supplier_launch_free %}Free during launch.{% else %}Active enrollment required.{% endif %} Choose flat-rate shop listings or live auctions for overstock you need to move quickly.</p>
   </section>
 
   <div class="wb-split">
@@ -23,7 +23,13 @@
     <section class="wb-panel">
       <h2>Publish a lot</h2>
       <p class="wb-panel__lead">Use the same company and email as your enrollment. COA reference required.</p>
-      <form method="post" action="{{ url_for('add_marketplace_listing') }}" class="wb-form">
+      <form method="post" action="{{ url_for('add_marketplace_listing') }}" class="wb-form" id="listing-form">
+        <label>Sale type
+          <select name="sale_mode" id="sale-mode">
+            <option value="buy_now">Shop now — flat rate</option>
+            <option value="auction">Live auction — overstock / urgent</option>
+          </select>
+        </label>
         <label>Category
           <select name="category">
             <option value="Ingredient">Ingredient</option>
@@ -34,7 +40,11 @@
         <label>Supplier company<input type="text" name="supplier_company" required /></label>
         <label>Contact email<input type="email" name="supplier_contact_email" required /></label>
         <label>Product name<input type="text" name="ingredient" placeholder="Creatine monohydrate" required /></label>
-        <label>Price<input type="number" step="0.01" min="0" name="price_per_kg" required /></label>
+        <label id="price-label">Flat rate price<input type="number" step="0.01" min="0" name="price_per_kg" required /></label>
+        <div class="wb-form__row wb-auction-fields" id="auction-fields" hidden>
+          <label>Starting bid (optional)<input type="number" step="0.01" min="0" name="starting_bid_per_kg" placeholder="Defaults to ~82% of list" /></label>
+          <label>Auction length (days)<input type="number" step="1" min="1" max="14" name="auction_days" value="3" /></label>
+        </div>
         <label>Quantity<input type="number" step="0.01" min="0" name="quantity_kg" required /></label>
         <label>COA reference<input type="text" name="coa_document" required /></label>
         <label>Expiry (optional)<input type="date" name="expires_on" /></label>
@@ -43,4 +53,19 @@
       </form>
     </section>
   </div>
+
+  <script>
+  (function () {
+    var mode = document.getElementById("sale-mode");
+    var auctionFields = document.getElementById("auction-fields");
+    var priceLabel = document.getElementById("price-label");
+    function syncMode() {
+      var isAuction = mode.value === "auction";
+      auctionFields.hidden = !isAuction;
+      priceLabel.firstChild.textContent = isAuction ? "List / reference price " : "Flat rate price ";
+    }
+    mode.addEventListener("change", syncMode);
+    syncMode();
+  })();
+  </script>
 {% endblock %}

@@ -1,5 +1,5 @@
 <article
-  class="wb-lot"
+  class="wb-lot {% if listing.sale_mode == 'auction' %}wb-lot--auction{% endif %}"
   data-category="{{ listing.category }}"
   data-search="{{ (listing.ingredient ~ ' ' ~ listing.supplier_public_name ~ ' ' ~ (listing.notes or ''))|lower }}"
 >
@@ -7,17 +7,29 @@
     <span class="wb-lot__badge wb-lot__badge--{{ listing.badge|lower }}">{{ listing.badge }}</span>
   </div>
   <div class="wb-lot__body">
-    <p class="wb-lot__category">{{ listing.category }}</p>
+    <p class="wb-lot__category">{{ listing.category }}{% if listing.sale_mode == 'auction' %} · Live auction{% endif %}</p>
     <h3 class="wb-lot__title">{{ listing.ingredient }}</h3>
     <p class="wb-lot__supplier">{{ listing.supplier_public_name }}</p>
     {% if listing.notes %}
       <p class="wb-lot__note">{{ listing.notes }}</p>
     {% endif %}
     <div class="wb-lot__pricing">
-      <p class="wb-lot__price">{{ listing.price_amount }} <span>{{ listing.price_unit_label }}</span></p>
+      {% if listing.sale_mode == 'auction' %}
+        <p class="wb-lot__price">{{ listing.price_amount }} <span>{{ listing.price_unit_label }}</span></p>
+        {% if listing.compare_price_display %}
+          <p class="wb-lot__compare">{{ listing.compare_price_display }}</p>
+        {% endif %}
+        <p class="wb-lot__bid-meta">{{ listing.bid_count }} bid{% if listing.bid_count != 1 %}s{% endif %} · min next ${{ '%.2f'|format(listing.min_next_bid_per_kg) }}</p>
+      {% else %}
+        <p class="wb-lot__price">{{ listing.price_amount }} <span>{{ listing.price_unit_label }}</span></p>
+      {% endif %}
       <p class="wb-lot__qty">{{ listing.quantity_display }}</p>
     </div>
-    <p class="wb-lot__time">{{ listing.days_left_label|upper }}</p>
-    <a class="wb-lot__cta" href="{{ url_for('marketplace', listing=listing.id) }}#order-flow">Request intro</a>
+    <p class="wb-lot__time">{{ listing.time_label|upper }}</p>
+    {% if listing.sale_mode == 'auction' %}
+      <a class="wb-lot__cta wb-lot__cta--auction" href="{{ url_for('marketplace', mode='auction', listing=listing.id) }}#bid-flow">Place bid</a>
+    {% else %}
+      <a class="wb-lot__cta" href="{{ url_for('marketplace', mode='buy_now', listing=listing.id) }}#order-flow">Request intro</a>
+    {% endif %}
   </div>
 </article>
