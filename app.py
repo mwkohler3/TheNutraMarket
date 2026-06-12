@@ -1166,10 +1166,7 @@ def listings_for_marketplace_view(sale_mode: str | None = None) -> list[dict]:
             item["price_display"] = f"${price:,.2f}/{unit if unit != 'kg' else 'kg'}"
             item["time_label"] = item["days_left_label"]
         out.append(item)
-    if sale_mode == "auction":
-        out.sort(
-            key=lambda x: listing_auction_ends_at(x) or datetime.max,
-        )
+    out.sort(key=lambda x: str(x.get("ingredient") or "").lower())
     return out
 
 
@@ -1578,7 +1575,8 @@ def marketplace():
         listings_for_view = [
             x
             for x in listings_for_view
-            if q in f"{x.get('ingredient', '')} {x.get('supplier_public_name', '')} {x.get('notes', '')}".lower()
+            if q
+            in f"{x.get('ingredient', '')} {x.get('supplier_public_name', '')} {x.get('notes', '')} {x.get('coa_document', '')}".lower()
         ]
     matches = build_marketplace_matches()
     raw_listing = request.args.get("listing", "").strip()

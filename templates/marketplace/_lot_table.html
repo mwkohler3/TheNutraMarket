@@ -1,0 +1,63 @@
+<div class="table-responsive wb-table-wrap">
+  <table class="wb-inventory-table {% if marketplace_mode == 'auction' %}wb-inventory-table--auction{% endif %}">
+    <thead>
+      <tr>
+        <th scope="col">Product</th>
+        <th scope="col">Category</th>
+        <th scope="col">Supplier</th>
+        <th scope="col">COA</th>
+        {% if marketplace_mode == 'auction' %}
+          <th scope="col">Current bid</th>
+          <th scope="col">Bids</th>
+        {% else %}
+          <th scope="col">Price</th>
+        {% endif %}
+        <th scope="col">Available</th>
+        <th scope="col">{% if marketplace_mode == 'auction' %}Ends{% else %}Expires{% endif %}</th>
+        <th scope="col"><span class="wb-sr-only">Action</span></th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for listing in listings %}
+        <tr
+          class="wb-inventory-row{% if listing.sale_mode == 'auction' %} wb-inventory-row--auction{% endif %}{% if prefill_listing_id == listing.id %} is-selected{% endif %}"
+          data-category="{{ listing.category }}"
+        >
+          <td class="wb-inventory-product">
+            <strong>{{ listing.ingredient }}</strong>
+            {% if listing.notes %}
+              <span class="wb-inventory-note">{{ listing.notes }}</span>
+            {% endif %}
+          </td>
+          <td>{{ listing.category }}</td>
+          <td>{{ listing.supplier_public_name }}</td>
+          <td class="wb-inventory-coa">{% if listing.coa_document %}{{ listing.coa_document }}{% else %}—{% endif %}</td>
+          {% if marketplace_mode == 'auction' %}
+            <td class="wb-inventory-price">
+              <strong>{{ listing.price_amount }}</strong>
+              <span class="wb-inventory-unit">{{ listing.price_unit_label }}</span>
+              {% if listing.compare_price_display %}
+                <span class="wb-inventory-compare">{{ listing.compare_price_display }}</span>
+              {% endif %}
+            </td>
+            <td>{{ listing.bid_count }}</td>
+          {% else %}
+            <td class="wb-inventory-price">
+              <strong>{{ listing.price_amount }}</strong>
+              <span class="wb-inventory-unit">{{ listing.price_unit_label }}</span>
+            </td>
+          {% endif %}
+          <td>{{ listing.quantity_display }}</td>
+          <td class="wb-inventory-time">{{ listing.time_label }}</td>
+          <td class="wb-inventory-action">
+            {% if listing.sale_mode == 'auction' %}
+              <a class="wb-table-btn wb-table-btn--auction" href="{{ url_for('marketplace', mode='auction', listing=listing.id) }}#bid-flow">Place bid</a>
+            {% else %}
+              <a class="wb-table-btn" href="{{ url_for('marketplace', mode='buy_now', listing=listing.id) }}#order-flow">Request intro</a>
+            {% endif %}
+          </td>
+        </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
