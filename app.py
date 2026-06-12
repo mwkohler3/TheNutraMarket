@@ -970,7 +970,7 @@ def build_marketplace_summary() -> dict:
 
 
 def listings_for_marketplace_view() -> list[dict]:
-    """Public catalog rows: always mask legal supplier name (SX- ref only). Unmask per buyer on matches after they commit."""
+    """Public catalog rows with supplier name, category, and formatted pricing."""
     ensure_all_listing_supplier_codes()
     listings = sorted(load_marketplace_listings(), key=lambda x: x.get("created_at", ""), reverse=True)
     rating_agg = build_supplier_rating_aggregates()
@@ -979,9 +979,19 @@ def listings_for_marketplace_view() -> list[dict]:
         item = dict(listing)
         code = str(listing.get("supplier_public_code") or "")
         agg = rating_agg.get(code)
+        unit = str(listing.get("unit") or "kg").lower()
+        price = float(listing.get("price_per_kg") or 0)
         item["supplier_public_code"] = code
         item["supplier_rating_display"] = format_supplier_rating_pill(agg)
-        item["supplier_public_name"] = "Confidential supplier"
+        item["supplier_public_name"] = str(listing.get("supplier_company") or "Supplier")
+        item["category"] = str(listing.get("category") or "Ingredient")
+        item["unit"] = unit
+        if unit == "kg":
+            item["price_display"] = f"${price:.2f}/kg"
+            item["quantity_display"] = f"{float(listing.get('quantity_kg') or 0):,.0f} kg"
+        else:
+            item["price_display"] = f"${price:.2f}/unit"
+            item["quantity_display"] = f"{float(listing.get('quantity_kg') or 0):,.0f} units"
         out.append(item)
     return out
 

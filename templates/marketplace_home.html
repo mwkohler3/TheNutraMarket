@@ -2,122 +2,88 @@
 {% block marketplace_title %}Live inventory{% endblock %}
 
 {% block marketplace_body %}
-  {% if request.args.get('checkout') == 'canceled' %}
-    <p class="helper-text marketplace-checkout-notice">Checkout was canceled—no card was charged.</p>
-  {% endif %}
-
-  <section class="nm-catalog-hero">
-    <p class="nm-catalog-hero__eyebrow">Instant inventory</p>
-    <p class="nm-catalog-hero__count" aria-live="polite">
-      <span class="nm-catalog-hero__count-value">{{ summary.listings }}</span>
-      active listing{% if summary.listings != 1 %}s{% endif %}
-    </p>
-    <h1>Live sports nutrition ingredient lots</h1>
-    <p class="nm-catalog-hero__lead">
-      Blind supplier codes until you sign the <a href="{{ url_for('marketplace_terms') }}">brokerage agreement</a>.
-      Negotiate and pay offline directly. {{ marketplace_vig_pct }}% brokerage on introduced buyer relationships.
-    </p>
-  </section>
-
-  <section class="panel marketplace-panel nm-catalog" id="marketplace-live-inventory">
-    <div class="nm-catalog__head">
-      <h2>Active listings</h2>
-      <p class="helper-text">COA-backed lots · masked suppliers · click <strong>Request intro</strong> to start</p>
+  <section class="nm-catalog-hero nm-catalog-hero--slim">
+    <div class="nm-catalog-hero__row">
+      <div>
+        <p class="nm-catalog-hero__eyebrow">Instant inventory</p>
+        <h1>{{ summary.listings }} live lots</h1>
+        <p class="nm-catalog-hero__lead">
+          Ingredients, flavorings, and packaging from verified suppliers. Request an intro to negotiate offline.
+        </p>
+      </div>
+      <div class="nm-catalog-hero__stats">
+        <span class="nm-stat-pill">{{ marketplace_vig_pct }}% brokerage</span>
+        <span class="nm-stat-pill">COA on file</span>
+      </div>
     </div>
-    {% if listings %}
-      <div class="table-responsive">
-        <table class="playbook-table marketplace-listings-table nm-listings-table">
-          <thead>
-            <tr>
-              <th>Ingredient</th>
-              <th>Supplier</th>
-              <th>Rating</th>
-              <th>COA</th>
-              <th>Price / kg</th>
-              <th>Qty kg</th>
-              <th>Expiry</th>
-              <th scope="col"></th>
-            </tr>
-          </thead>
-          <tbody>
-            {% for listing in listings %}
-              <tr>
-                <td><strong>{{ listing.ingredient }}</strong></td>
-                <td>{{ listing.supplier_public_name }}</td>
-                <td class="marketplace-rating-cell">{{ listing.supplier_rating_display }}</td>
-                <td>{{ listing.coa_document }}</td>
-                <td>${{ "%.2f"|format(listing.price_per_kg) }}</td>
-                <td>{{ "%.0f"|format(listing.quantity_kg) }}</td>
-                <td>{{ listing.expires_on or "—" }}</td>
-                <td>
-                  <a class="marketplace-order-link nm-btn nm-btn--sm" href="{{ url_for('marketplace', listing=listing.id) }}#order-flow">Request intro</a>
-                </td>
-              </tr>
-            {% endfor %}
-          </tbody>
-        </table>
-      </div>
-    {% else %}
-      <p class="helper-text">No live lots yet. <a href="{{ url_for('marketplace_suppliers') }}">Suppliers</a> can publish inventory.</p>
-    {% endif %}
   </section>
 
-  {% if matches %}
-    <section class="panel marketplace-panel">
-      <h2>Your matches</h2>
-      <div class="table-responsive">
-        <table class="playbook-table">
-          <thead>
-            <tr>
-              <th>Ingredient</th>
-              <th>Supplier</th>
-              <th>Price / kg</th>
-              <th>Qty kg</th>
-              <th></th>
-            </tr>
-          </thead>
-          <tbody>
-            {% for match in matches[:12] %}
-              <tr>
-                <td>{{ match.ingredient }}</td>
-                <td>{{ match.supplier_company_masked }}</td>
-                <td>${{ "%.2f"|format(match.price_per_kg) }}</td>
-                <td>{{ "%.0f"|format(match.quantity_kg) }}</td>
-                <td>
-                  {% if match.listing_id %}
-                    <a class="marketplace-order-link" href="{{ url_for('marketplace', listing=match.listing_id) }}#order-flow">Request intro</a>
-                  {% endif %}
-                </td>
-              </tr>
-            {% endfor %}
-          </tbody>
-        </table>
-      </div>
-    </section>
+  <section class="nm-toolbar" aria-label="Filter listings">
+    <label class="nm-search">
+      <span class="sr-only">Search listings</span>
+      <input type="search" id="nm-listing-search" placeholder="Search product or supplier…" autocomplete="off" />
+    </label>
+    <div class="nm-filter-chips" role="tablist" aria-label="Category">
+      <button type="button" class="nm-chip is-active" data-category="all">All</button>
+      <button type="button" class="nm-chip" data-category="Ingredient">Ingredients</button>
+      <button type="button" class="nm-chip" data-category="Flavoring">Flavorings</button>
+      <button type="button" class="nm-chip" data-category="Packaging">Packaging</button>
+    </div>
+  </section>
+
+  {% if listings %}
+    <div class="nm-listing-grid" id="nm-listing-grid">
+      {% for listing in listings %}
+        <article
+          class="nm-listing-card"
+          data-category="{{ listing.category }}"
+          data-search="{{ (listing.ingredient ~ ' ' ~ listing.supplier_public_name ~ ' ' ~ (listing.notes or ''))|lower }}"
+        >
+          <div class="nm-listing-card__top">
+            <span class="nm-listing-card__category nm-listing-card__category--{{ listing.category|lower }}">{{ listing.category }}</span>
+            {% if listing.notes and ('48-hour' in listing.notes or 'liquidation' in listing.notes|lower or 'urgent' in listing.notes|lower) %}
+              <span class="nm-listing-card__urgency">Hot lot</span>
+            {% endif %}
+          </div>
+          <h2 class="nm-listing-card__title">{{ listing.ingredient }}</h2>
+          <p class="nm-listing-card__supplier">{{ listing.supplier_public_name }}</p>
+          <dl class="nm-listing-card__meta">
+            <div><dt>Price</dt><dd>{{ listing.price_display }}</dd></div>
+            <div><dt>Available</dt><dd>{{ listing.quantity_display }}</dd></div>
+            <div><dt>COA</dt><dd>{{ listing.coa_document }}</dd></div>
+            <div><dt>Expiry</dt><dd>{{ listing.expires_on or "—" }}</dd></div>
+          </dl>
+          {% if listing.notes %}
+            <p class="nm-listing-card__notes">{{ listing.notes }}</p>
+          {% endif %}
+          <a class="btn nm-btn nm-listing-card__cta" href="{{ url_for('marketplace', listing=listing.id) }}#order-flow">Request intro</a>
+        </article>
+      {% endfor %}
+    </div>
+    <p class="nm-empty-state" id="nm-listing-empty" hidden>No listings match your search.</p>
+  {% else %}
+    <p class="helper-text">No live lots yet. <a href="{{ url_for('marketplace_suppliers') }}">Suppliers</a> can publish inventory.</p>
   {% endif %}
 
-  <section class="panel marketplace-panel" id="order-flow">
-    <h2>Request introduction (step 1 of 2)</h2>
-    <p class="helper-text">
-      Submit your RFQ. We match you with the supplier. Before the supplier receives your details, they sign our brokerage agreement.
-      You negotiate and pay offline; future transactions between introduced parties include {{ marketplace_vig_pct }}% brokerage.
-    </p>
+  <section class="panel marketplace-panel nm-order-panel" id="order-flow">
+    <h2>Request introduction</h2>
+    <p class="helper-text">Step 1 of 2 — then review and sign the brokerage agreement.</p>
     {% if prefill_listing_id %}
       {% set picked = (listings | selectattr('id', 'equalto', prefill_listing_id) | list | first) %}
       {% if picked %}
-        <p class="helper-text" role="status">
-          Selected lot: <strong>{{ picked.ingredient }}</strong> — ${{ "%.2f"|format(picked.price_per_kg) }}/kg
+        <p class="nm-order-selected" role="status">
+          <strong>{{ picked.ingredient }}</strong> · {{ picked.supplier_public_name }} · {{ picked.price_display }}
         </p>
       {% endif %}
     {% endif %}
-    <form method="post" action="{{ url_for('commit_marketplace_begin') }}" class="grid-form" id="order-flow-form">
+    <form method="post" action="{{ url_for('commit_marketplace_begin') }}" class="grid-form nm-order-form" id="order-flow-form">
       <label>
         Listing
         <select name="listing_id" id="order-flow-listing" required>
           <option value="">Select listing…</option>
           {% for listing in listings %}
             <option value="{{ listing.id }}" {% if prefill_listing_id == listing.id %}selected{% endif %}>
-              {{ listing.ingredient }} — ${{ "%.2f"|format(listing.price_per_kg) }}/kg — {{ "%.0f"|format(listing.quantity_kg) }} kg
+              {{ listing.ingredient }} — {{ listing.supplier_public_name }} — {{ listing.price_display }}
             </option>
           {% endfor %}
         </select>
@@ -130,9 +96,42 @@
 
   <script>
   (function () {
-    if (window.location.hash !== "#order-flow") return;
-    var el = document.getElementById("order-flow");
-    if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
+    var grid = document.getElementById("nm-listing-grid");
+    var search = document.getElementById("nm-listing-search");
+    var empty = document.getElementById("nm-listing-empty");
+    var chips = document.querySelectorAll(".nm-chip");
+    var activeCategory = "all";
+
+    function applyFilters() {
+      if (!grid) return;
+      var q = (search && search.value ? search.value : "").trim().toLowerCase();
+      var visible = 0;
+      grid.querySelectorAll(".nm-listing-card").forEach(function (card) {
+        var cat = card.getAttribute("data-category") || "";
+        var text = card.getAttribute("data-search") || "";
+        var catOk = activeCategory === "all" || cat === activeCategory;
+        var searchOk = !q || text.indexOf(q) !== -1;
+        var show = catOk && searchOk;
+        card.hidden = !show;
+        if (show) visible += 1;
+      });
+      if (empty) empty.hidden = visible > 0;
+    }
+
+    chips.forEach(function (chip) {
+      chip.addEventListener("click", function () {
+        chips.forEach(function (c) { c.classList.remove("is-active"); });
+        chip.classList.add("is-active");
+        activeCategory = chip.getAttribute("data-category") || "all";
+        applyFilters();
+      });
+    });
+    if (search) search.addEventListener("input", applyFilters);
+
+    if (window.location.hash === "#order-flow") {
+      var el = document.getElementById("order-flow");
+      if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
   })();
   </script>
 {% endblock %}

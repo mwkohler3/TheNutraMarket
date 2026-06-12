@@ -2494,3 +2494,233 @@ html {
 .nm-body .global-floating-assistant {
   bottom: 4.5rem;
 }
+
+.nm-catalog-hero--slim {
+  margin-bottom: 1rem;
+}
+
+.nm-catalog-hero__row {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 1.25rem;
+  flex-wrap: wrap;
+}
+
+.nm-catalog-hero--slim h1 {
+  margin: 0 0 0.35rem;
+  font-size: clamp(1.5rem, 3vw, 2rem);
+}
+
+.nm-catalog-hero__stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.nm-stat-pill {
+  display: inline-block;
+  padding: 0.35rem 0.65rem;
+  border-radius: 999px;
+  background: #f3f4f6;
+  border: 1px solid #e5e7eb;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: #374151;
+}
+
+.nm-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem 1rem;
+  align-items: center;
+  margin-bottom: 1.25rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.nm-search {
+  flex: 1 1 220px;
+}
+
+.nm-search input {
+  width: 100%;
+  padding: 0.6rem 0.75rem;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  font-size: 0.95rem;
+}
+
+.nm-filter-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.nm-chip {
+  border: 1px solid #d1d5db;
+  background: #fff;
+  color: #374151;
+  border-radius: 999px;
+  padding: 0.4rem 0.85rem;
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.nm-chip.is-active {
+  background: #0a0a0a;
+  border-color: #0a0a0a;
+  color: #fff;
+}
+
+.nm-listing-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 1rem;
+  margin-bottom: 2rem;
+}
+
+.nm-listing-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+  padding: 1rem 1.05rem;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  background: #fff;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+.nm-listing-card:hover {
+  border-color: #1f5fff;
+  box-shadow: 0 8px 24px rgba(31, 95, 255, 0.08);
+}
+
+.nm-listing-card__top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.nm-listing-card__category {
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  padding: 0.2rem 0.5rem;
+  border-radius: 4px;
+}
+
+.nm-listing-card__category--ingredient {
+  background: #eff6ff;
+  color: #1d4ed8;
+}
+
+.nm-listing-card__category--flavoring {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.nm-listing-card__category--packaging {
+  background: #f3e8ff;
+  color: #6b21a8;
+}
+
+.nm-listing-card__urgency {
+  font-size: 0.68rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: #dc2626;
+}
+
+.nm-listing-card__title {
+  margin: 0;
+  font-size: 1rem;
+  line-height: 1.35;
+  color: #0a0a0a;
+}
+
+.nm-listing-card__supplier {
+  margin: 0;
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: #4b5563;
+}
+
+.nm-listing-card__meta {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.45rem 0.75rem;
+  margin: 0;
+  font-size: 0.8rem;
+}
+
+.nm-listing-card__meta dt {
+  margin: 0;
+  color: #9ca3af;
+  font-weight: 600;
+  font-size: 0.68rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.nm-listing-card__meta dd {
+  margin: 0.1rem 0 0;
+  color: #111827;
+  font-weight: 600;
+}
+
+.nm-listing-card__notes {
+  margin: 0;
+  font-size: 0.78rem;
+  color: #6b7280;
+  line-height: 1.4;
+}
+
+.nm-listing-card__cta {
+  margin-top: auto;
+  width: 100%;
+  text-align: center;
+  padding: 0.55rem 0.75rem;
+}
+
+.nm-empty-state {
+  text-align: center;
+  color: #6b7280;
+  margin: 2rem 0;
+}
+
+.nm-order-panel {
+  margin-top: 1rem;
+  border-top: 3px solid #0a0a0a;
+}
+
+.nm-order-panel h2 {
+  margin-top: 0;
+}
+
+.nm-order-selected {
+  margin: 0 0 1rem;
+  padding: 0.65rem 0.75rem;
+  background: #eff6ff;
+  border-radius: 8px;
+  font-size: 0.9rem;
+}
+
+.nm-order-form {
+  max-width: 36rem;
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
