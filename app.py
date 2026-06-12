@@ -49,6 +49,7 @@ SESSION_MARKETPLACE_ACCESS = "marketplace_member_access"
 SITE_NAME = "TheNutraMarket"
 SITE_TAGLINE = "Instant inventory marketplace for sports nutrition"
 SITE_LEGAL_NAME = os.environ.get("SITE_LEGAL_NAME", "TheNutraMarket.com")
+MARKETPLACE_DEMO_ACCESS_CODE = os.environ.get("MARKETPLACE_DEMO_ACCESS_CODE", "NM-DEMO").strip().upper()
 
 _PUBLIC_MARKETPLACE_ENDPOINTS = frozenset(
     {
@@ -535,6 +536,8 @@ def _all_access_codes() -> set[str]:
         code = raw.strip().upper()
         if code:
             codes.add(code)
+    if MARKETPLACE_DEMO_ACCESS_CODE:
+        codes.add(MARKETPLACE_DEMO_ACCESS_CODE)
     return codes
 
 
