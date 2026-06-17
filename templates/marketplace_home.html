@@ -116,48 +116,16 @@
           </div>
         {% endif %}
 
-        <section class="shop-order wb-panel" id="order-flow">
-          <h2>Request introduction</h2>
-          <p class="wb-panel__lead">Connect with the onboarded supplier. All commercial terms are agreed directly between you and the supplier.</p>
-          {% if prefill_listing_id %}
-            {% set picked = (listings | selectattr('id', 'equalto', prefill_listing_id) | list | first) %}
-            {% if picked %}
-              <p class="wb-order-selected" role="status">
-                Selected: <strong>{{ picked.ingredient }}</strong> · {{ picked.supplier_public_name }} · {{ picked.price_display }}
-              </p>
-            {% endif %}
-          {% endif %}
-          <form method="post" action="{{ url_for('commit_marketplace_begin') }}" class="wb-form" id="order-flow-form">
-            <label>
-              Listing
-              <select name="listing_id" required>
-                <option value="">Select listing…</option>
-                {% for listing in listings %}
-                  <option value="{{ listing.id }}" {% if prefill_listing_id == listing.id %}selected{% endif %}>
-                    {{ listing.ingredient }} — {{ listing.supplier_public_name }}
-                  </option>
-                {% endfor %}
-              </select>
-            </label>
-            <label>Your company<input type="text" name="buyer_company" required /></label>
-            <label>Contact email<input type="email" name="buyer_contact_email" required /></label>
-            <button type="submit" class="shop-btn shop-btn--primary">Continue to supplier terms</button>
-          </form>
-        </section>
+        {% include "marketplace/_intro_request_modal.html" %}
       </div>
     </div>
   {% endif %}
 
   <script>
   (function () {
-    var hash = window.location.hash;
-    if (hash === "#order-flow") {
-      var order = document.querySelector(hash);
-      if (order) order.scrollIntoView({ behavior: "smooth", block: "start" });
-    }
     var bidDialog = document.getElementById("bid-flow");
     if (bidDialog && typeof bidDialog.showModal === "function") {
-      if (hash === "#bid-flow" && !bidDialog.open) {
+      if (window.location.hash === "#bid-flow" && !bidDialog.open) {
         bidDialog.showModal();
       }
       bidDialog.querySelectorAll("[data-close-bid]").forEach(function (btn) {
@@ -172,6 +140,92 @@
         if (e.target === bidDialog) bidDialog.close();
       });
     }
+
+    var introDialog = document.getElementById("intro-flow");
+    var introForm = document.getElementById("intro-request-form");
+    var introFormPanel = document.getElementById("intro-form-panel");
+    var introSuccessPanel = document.getElementById("intro-success-panel");
+    var introListingLabel = document.getElementById("intro-listing-label");
+    var introSupplierRef = document.getElementById("intro-supplier-ref");
+    var introListingId = document.getElementById("intro-listing-id");
+    var introError = document.getElementById("intro-form-error");
+    var introSuccessMessage = document.getElementById("intro-success-message");
+
+    function resetIntroDialog() {
+      if (introForm) introForm.reset();
+      if (introError) introError.hidden = true;
+      if (introFormPanel) introFormPanel.hidden = false;
+      if (introSuccessPanel) introSuccessPanel.hidden = true;
+    }
+
+    function closeIntroDialog() {
+      if (introDialog && introDialog.open) introDialog.close();
+      resetIntroDialog();
+    }
+
+    if (introDialog) {
+      document.querySelectorAll("[data-intro-open]").forEach(function (btn) {
+        btn.addEventListener("click", function () {
+          resetIntroDialog();
+          var ingredient = btn.getAttribute("data-ingredient") || "";
+          var code = btn.getAttribute("data-supplier-code") || "";
+          var listingId = btn.getAttribute("data-listing-id") || "";
+          if (introListingId) introListingId.value = listingId;
+          if (introListingLabel) introListingLabel.textContent = ingredient;
+          if (introSupplierRef) introSupplierRef.textContent = code ? "Supplier reference: " + code : "";
+          if (typeof introDialog.showModal === "function") introDialog.showModal();
+        });
+      });
+      introDialog.querySelectorAll("[data-close-intro]").forEach(function (btn) {
+        btn.addEventListener("click", closeIntroDialog);
+      });
+      introDialog.addEventListener("click", function (e) {
+        if (e.target === introDialog) closeIntroDialog();
+      });
+    }
+
+    if (introForm) {
+      introForm.addEventListener("submit", function (e) {
+        e.preventDefault();
+        if (introError) introError.hidden = true;
+        var submitBtn = introForm.querySelector('button[type="submit"]');
+        if (submitBtn) submitBtn.disabled = true;
+        fetch(introForm.action, {
+          method: "POST",
+          body: new FormData(introForm),
+          headers: { "X-Requested-With": "XMLHttpRequest" },
+        })
+          .then(function (res) {
+            return res.json().then(function (data) {
+              return { ok: res.ok, data: data };
+            });
+          })
+          .then(function (result) {
+            if (submitBtn) submitBtn.disabled = false;
+            if (result.ok && result.data && result.data.ok) {
+              if (introFormPanel) introFormPanel.hidden = true;
+              if (introSuccessPanel) introSuccessPanel.hidden = false;
+              if (introSuccessMessage && result.data.message) {
+                introSuccessMessage.textContent = result.data.message;
+              }
+              return;
+            }
+            var msg = (result.data && result.data.error) || "Something went wrong. Please try again.";
+            if (introError) {
+              introError.textContent = msg;
+              introError.hidden = false;
+            }
+          })
+          .catch(function () {
+            if (submitBtn) submitBtn.disabled = false;
+            if (introError) {
+              introError.textContent = "Something went wrong. Please try again.";
+              introError.hidden = false;
+            }
+          });
+      });
+    }
+
     if (window.matchMedia("(min-width: 900px)").matches) {
       var mobile = document.querySelector(".shop-sidebar__mobile");
       if (mobile) mobile.setAttribute("open", "");

@@ -1,0 +1,29 @@
+<dialog class="wb-intro-dialog" id="intro-flow">
+  <div class="wb-intro-dialog__inner">
+    <button type="button" class="wb-bid-dialog__close" aria-label="Close" data-close-intro>&times;</button>
+
+    <div id="intro-form-panel">
+      <h2>Request intro</h2>
+      <p class="wb-panel__lead" id="intro-listing-label"></p>
+      <p class="wb-intro-supplier-ref" id="intro-supplier-ref"></p>
+      <form method="post" action="{{ url_for('request_marketplace_intro') }}" class="wb-form" id="intro-request-form">
+        <input type="hidden" name="listing_id" id="intro-listing-id" value="" />
+        <label>Your name<input type="text" name="buyer_name" required autocomplete="name" /></label>
+        <label>Company<input type="text" name="buyer_company" required autocomplete="organization" /></label>
+        <label>Email<input type="email" name="buyer_contact_email" required autocomplete="email" /></label>
+        <label>Phone<input type="tel" name="buyer_phone" required autocomplete="tel" /></label>
+        <label>Note (optional)<textarea name="note" rows="3" placeholder="Quantity, timeline, specs…"></textarea></label>
+        <p class="wb-intro-error" id="intro-form-error" hidden role="alert"></p>
+        <button type="submit" class="shop-btn shop-btn--primary">Submit request</button>
+      </form>
+    </div>
+
+    <div id="intro-success-panel" class="wb-intro-success" hidden>
+      <h2>Request received</h2>
+      <p class="wb-intro-success__message" id="intro-success-message">
+        Thanks — we'll reach out to connect you with the supplier shortly.
+      </p>
+      <button type="button" class="shop-btn shop-btn--primary" data-close-intro>Close</button>
+    </div>
+  </div>
+</dialog>

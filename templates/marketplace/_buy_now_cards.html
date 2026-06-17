@@ -43,7 +43,14 @@
         {% endif %}
       </div>
 
-      <a class="shop-card__cta" href="{{ marketplace_listing_href(listing.id) }}#order-flow">Request intro</a>
+      <button
+        type="button"
+        class="shop-card__cta shop-card__cta--intro"
+        data-intro-open
+        data-listing-id="{{ listing.id }}"
+        data-ingredient="{{ listing.ingredient }}"
+        data-supplier-code="{{ listing.supplier_public_code }}"
+      >Request intro</button>
     </article>
   {% endfor %}
 </div>

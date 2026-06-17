@@ -22,6 +22,12 @@ try:
 except ImportError:  # pragma: no cover
     DDGS = None
 
+try:
+    from agreement_mail import send_intro_request_notice
+except ImportError:  # pragma: no cover
+    def send_intro_request_notice(commit: dict) -> bool:  # type: ignore[misc]
+        return False
+
 app = Flask(__name__)
 app.secret_key = os.environ.get("SECRET_KEY", "local-lead-pipeline-secret")
 # Correct scheme/host when behind Cloudflare Tunnel, ngrok, etc. (for Stripe return URLs and sessions).
@@ -2331,6 +2337,55 @@ def add_marketplace_listing():
     else:
         flash("Listing created. No active buyer alert matches yet.", "success")
     return redirect(url_for("marketplace_suppliers"))
+
+
+@app.route("/marketplace/intro/request", methods=["POST"])
+def request_marketplace_intro():
+    listing_id = request.form.get("listing_id", "").strip()
+    buyer_name = request.form.get("buyer_name", "").strip()
+    buyer_company = request.form.get("buyer_company", "").strip()
+    buyer_contact_email = request.form.get("buyer_contact_email", "").strip()
+    buyer_phone = request.form.get("buyer_phone", "").strip()
+    note = request.form.get("note", "").strip()
+    wants_json = request.headers.get("X-Requested-With") == "XMLHttpRequest"
+
+    def respond_error(message: str, status: int = 400):
+        if wants_json:
+            return jsonify({"ok": False, "error": message}), status
+        flash(message, "error")
+        return redirect(url_for("marketplace", mode="buy_now"))
+
+    if not listing_id or not buyer_name or not buyer_company or not buyer_contact_email or not buyer_phone:
+        return respond_error("Name, company, email, and phone are required.")
+
+    listings = load_marketplace_listings()
+    listing = next((item for item in listings if str(item.get("id")) == listing_id), None)
+    if not listing or listing_sale_mode(listing) != "buy_now":
+        return respond_error("That listing is not available for a direct intro request.")
+
+    commit_row = {
+        "id": str(uuid.uuid4()),
+        "listing_id": listing_id,
+        "ingredient": str(listing.get("ingredient") or ""),
+        "supplier_public_code": str(listing.get("supplier_public_code") or ""),
+        "buyer_name": buyer_name,
+        "buyer_company": buyer_company,
+        "buyer_contact_email": buyer_contact_email,
+        "buyer_phone": buyer_phone,
+        "note": note,
+        "timestamp": datetime.now().isoformat(timespec="seconds"),
+        "agreement_accepted": False,
+    }
+    commits = load_marketplace_commits()
+    commits.append(commit_row)
+    save_marketplace_commits(commits)
+    send_intro_request_notice(commit_row)
+
+    success_message = "Thanks — we'll reach out to connect you with the supplier shortly."
+    if wants_json:
+        return jsonify({"ok": True, "message": success_message})
+    flash(success_message, "success")
+    return redirect(url_for("marketplace", mode="buy_now"))
 
 
 @app.route("/marketplace/commit/begin", methods=["POST"])
