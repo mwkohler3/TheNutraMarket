@@ -1,0 +1,51 @@
+<div class="shop-grid">
+  {% for listing in listings %}
+    <article
+      class="shop-card{% if prefill_listing_id == listing.id %} shop-card--selected{% endif %}"
+      data-taxonomy="{{ listing.ingredient_taxonomy }}"
+    >
+      <div class="shop-card__monogram shop-card__monogram--{{ listing.ingredient_taxonomy }}" aria-hidden="true">
+        {{ listing.taxonomy_monogram }}
+      </div>
+
+      <div class="shop-card__head">
+        <h3 class="shop-card__title">{{ listing.ingredient }}</h3>
+        <p class="shop-card__form">{{ listing.form_label }}</p>
+      </div>
+
+      <div class="shop-card__price-row">
+        <p class="shop-card__price">{{ listing.price_amount }}<span>/{{ listing.unit if listing.unit != 'kg' else 'kg' }}</span></p>
+        {% if listing.price_tier_chips %}
+          <div class="shop-card__tiers">
+            {% for chip in listing.price_tier_chips %}
+              <span class="shop-tier-chip">{{ chip }}</span>
+            {% endfor %}
+          </div>
+        {% endif %}
+      </div>
+
+      <div class="shop-card__trust">
+        {% if listing.coa_on_file %}
+          <span class="shop-trust shop-trust--coa">✓ COA on file</span>
+        {% else %}
+          <span class="shop-trust shop-trust--muted">No COA listed</span>
+        {% endif %}
+        <span class="shop-trust shop-trust--rating">{{ listing.supplier_rating_display }}</span>
+        {% if listing.supplier_verified %}
+          <span class="shop-trust shop-trust--verified">Verified Supplier</span>
+        {% endif %}
+      </div>
+
+      <div class="shop-card__meta">
+        <span>{{ listing.quantity_display }}</span>
+        {% if listing.expires_soon and listing.days_left is not none %}
+          <span class="shop-expiry{% if listing.expires_urgent %} shop-expiry--urgent{% endif %}">Expires in {{ listing.days_left }} day{% if listing.days_left != 1 %}s{% endif %}</span>
+        {% elif listing.listed_date_label %}
+          <span class="shop-listed">{{ listing.listed_date_label }}</span>
+        {% endif %}
+      </div>
+
+      <a class="shop-card__cta" href="{{ marketplace_listing_href(listing.id) }}#order-flow">Request intro</a>
+    </article>
+  {% endfor %}
+</div>

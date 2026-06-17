@@ -11,58 +11,44 @@
       </p>
       <a class="wb-btn wb-deal-hero__cta" href="#bid-flow">Place a bid</a>
     </section>
-  {% else %}
-    <section class="wb-page-head">
-      <h1>Shop now</h1>
-      <p>{{ listings|length }} flat-rate lot{% if listings|length != 1 %}s{% endif %} · sorted A–Z</p>
+
+    <section class="wb-mode-tabs" aria-label="Browse mode">
+      <a class="wb-mode-tab is-active" href="{{ url_for('marketplace', category=filter_category or none, q=filter_q or none) }}">Live Auction</a>
+      <a class="wb-mode-tab" href="{{ url_for('marketplace', mode='buy_now', category=filter_category or none, q=filter_q or none) }}">Shop now</a>
     </section>
-  {% endif %}
 
-  <section class="wb-mode-tabs" aria-label="Browse mode">
-    <a class="wb-mode-tab {% if marketplace_mode == 'auction' %}is-active{% endif %}" href="{{ url_for('marketplace', category=filter_category or none, q=filter_q or none) }}">Live Auction</a>
-    <a class="wb-mode-tab {% if marketplace_mode == 'buy_now' %}is-active{% endif %}" href="{{ url_for('marketplace', mode='buy_now', category=filter_category or none, q=filter_q or none) }}">Shop now</a>
-  </section>
+    <section class="wb-toolbar">
+      <form class="wb-inventory-search" action="{{ url_for('marketplace') }}" method="get" role="search">
+        {% if filter_category %}
+          <input type="hidden" name="category" value="{{ filter_category }}" />
+        {% endif %}
+        <label class="wb-sr-only" for="inventory-search">Search listings</label>
+        <input
+          id="inventory-search"
+          type="search"
+          name="q"
+          placeholder="Search product, supplier, COA, notes…"
+          value="{{ filter_q or '' }}"
+          aria-label="Search listings"
+        />
+        <button type="submit" class="wb-btn wb-btn--compact">Search</button>
+      </form>
+      <div class="wb-filter-chips" role="tablist" aria-label="Category">
+        <a class="wb-chip {% if not filter_category %}is-active{% endif %}" href="{{ url_for('marketplace', category=none, q=filter_q or none) }}">All</a>
+        <a class="wb-chip {% if filter_category == 'Ingredient' %}is-active{% endif %}" href="{{ url_for('marketplace', category='Ingredient', q=filter_q or none) }}">Ingredients</a>
+        <a class="wb-chip {% if filter_category == 'Flavoring' %}is-active{% endif %}" href="{{ url_for('marketplace', category='Flavoring', q=filter_q or none) }}">Flavorings</a>
+        <a class="wb-chip {% if filter_category == 'Packaging' %}is-active{% endif %}" href="{{ url_for('marketplace', category='Packaging', q=filter_q or none) }}">Packaging</a>
+      </div>
+    </section>
 
-  <section class="wb-toolbar">
-    <form class="wb-inventory-search" action="{{ url_for('marketplace') }}" method="get" role="search">
-      {% if marketplace_mode == 'buy_now' %}
-        <input type="hidden" name="mode" value="buy_now" />
-      {% endif %}
-      {% if filter_category %}
-        <input type="hidden" name="category" value="{{ filter_category }}" />
-      {% endif %}
-      <label class="wb-sr-only" for="inventory-search">Search listings</label>
-      <input
-        id="inventory-search"
-        type="search"
-        name="q"
-        placeholder="Search product, supplier, COA, notes…"
-        value="{{ filter_q or '' }}"
-        aria-label="Search listings"
-      />
-      <button type="submit" class="wb-btn wb-btn--compact">Search</button>
-    </form>
-    <div class="wb-filter-chips" role="tablist" aria-label="Category">
-      <a class="wb-chip {% if not filter_category %}is-active{% endif %}" href="{{ url_for('marketplace', mode='buy_now' if marketplace_mode == 'buy_now' else none, category=none, q=filter_q or none) }}">All</a>
-      <a class="wb-chip {% if filter_category == 'Ingredient' %}is-active{% endif %}" href="{{ url_for('marketplace', mode='buy_now' if marketplace_mode == 'buy_now' else none, category='Ingredient', q=filter_q or none) }}">Ingredients</a>
-      <a class="wb-chip {% if filter_category == 'Flavoring' %}is-active{% endif %}" href="{{ url_for('marketplace', mode='buy_now' if marketplace_mode == 'buy_now' else none, category='Flavoring', q=filter_q or none) }}">Flavorings</a>
-      <a class="wb-chip {% if filter_category == 'Packaging' %}is-active{% endif %}" href="{{ url_for('marketplace', mode='buy_now' if marketplace_mode == 'buy_now' else none, category='Packaging', q=filter_q or none) }}">Packaging</a>
-    </div>
-  </section>
-
-  {% if listings %}
-    {% include "marketplace/_lot_table.html" %}
-  {% else %}
-    <p class="wb-empty">
-      {% if marketplace_mode == 'auction' %}
+    {% if listings %}
+      {% include "marketplace/_lot_table.html" %}
+    {% else %}
+      <p class="wb-empty">
         No open auctions match your search. <a href="{{ url_for('marketplace') }}">Clear filters</a> or browse <a href="{{ url_for('marketplace', mode='buy_now') }}">flat-rate shop listings</a>.
-      {% else %}
-        No lots match your search. <a href="{{ url_for('marketplace', mode='buy_now') }}">Clear filters</a>
-      {% endif %}
-    </p>
-  {% endif %}
+      </p>
+    {% endif %}
 
-  {% if marketplace_mode == 'auction' %}
     <section class="wb-panel wb-order" id="bid-flow">
       <h2>Place a bid</h2>
       <p class="wb-panel__lead">Bid on overstock lots. Winning bidders complete terms directly with the onboarded supplier.</p>
@@ -93,35 +79,102 @@
         <button type="submit" class="wb-btn">Submit bid</button>
       </form>
     </section>
+
   {% else %}
-    <section class="wb-panel wb-order" id="order-flow">
-      <h2>Request introduction</h2>
-      <p class="wb-panel__lead">Connect with the onboarded supplier. All commercial terms are agreed directly between you and the supplier.</p>
-      {% if prefill_listing_id %}
-        {% set picked = (listings | selectattr('id', 'equalto', prefill_listing_id) | list | first) %}
-        {% if picked %}
-          <p class="wb-order-selected" role="status">
-            Selected: <strong>{{ picked.ingredient }}</strong> · {{ picked.supplier_public_name }} · {{ picked.price_display }}
-          </p>
-        {% endif %}
-      {% endif %}
-      <form method="post" action="{{ url_for('commit_marketplace_begin') }}" class="wb-form" id="order-flow-form">
-        <label>
-          Listing
-          <select name="listing_id" required>
-            <option value="">Select listing…</option>
-            {% for listing in listings %}
-              <option value="{{ listing.id }}" {% if prefill_listing_id == listing.id %}selected{% endif %}>
-                {{ listing.ingredient }} — {{ listing.supplier_public_name }}
-              </option>
-            {% endfor %}
-          </select>
-        </label>
-        <label>Your company<input type="text" name="buyer_company" required /></label>
-        <label>Contact email<input type="email" name="buyer_contact_email" required /></label>
-        <button type="submit" class="wb-btn">Continue to supplier terms</button>
-      </form>
+    <section class="shop-page-head">
+      <h1>Shop now</h1>
+      <p class="shop-page-head__lead">Flat-rate inventory from verified suppliers — filter by category, certification, and COA status.</p>
     </section>
+
+    <section class="wb-mode-tabs" aria-label="Browse mode">
+      <a class="wb-mode-tab" href="{{ url_for('marketplace', category=filter_category or none, q=filter_q or none) }}">Live Auction</a>
+      <a class="wb-mode-tab is-active" href="{{ url_for('marketplace', mode='buy_now') }}">Shop now</a>
+    </section>
+
+    <div class="shop-catalog">
+      {% include "marketplace/_buy_now_sidebar.html" %}
+
+      <div class="shop-main">
+        <div class="shop-toolbar">
+          <form class="shop-search" method="get" action="{{ url_for('marketplace') }}" role="search">
+            <input type="hidden" name="mode" value="buy_now" />
+            {% if filter_category %}<input type="hidden" name="category" value="{{ filter_category }}" />{% endif %}
+            {% if filter_sort %}<input type="hidden" name="sort" value="{{ filter_sort }}" />{% endif %}
+            {% for t in filter_taxonomies %}<input type="hidden" name="taxonomy" value="{{ t }}" />{% endfor %}
+            {% for c in filter_certs %}<input type="hidden" name="cert" value="{{ c }}" />{% endfor %}
+            {% if filter_price_min %}<input type="hidden" name="price_min" value="{{ filter_price_min }}" />{% endif %}
+            {% if filter_price_max %}<input type="hidden" name="price_max" value="{{ filter_price_max }}" />{% endif %}
+            {% if filter_qty_min %}<input type="hidden" name="qty_min" value="{{ filter_qty_min }}" />{% endif %}
+            {% if filter_rating and filter_rating != 'any' %}<input type="hidden" name="rating" value="{{ filter_rating }}" />{% endif %}
+            {% if filter_coa_only %}<input type="hidden" name="coa_only" value="1" />{% endif %}
+            <label class="wb-sr-only" for="shop-search">Search listings</label>
+            <input id="shop-search" type="search" name="q" placeholder="Search product, supplier, COA…" value="{{ filter_q or '' }}" />
+            <button type="submit" class="shop-btn shop-btn--ghost">Search</button>
+          </form>
+
+          <form class="shop-sort" method="get" action="{{ url_for('marketplace') }}" id="shop-sort-form">
+            <input type="hidden" name="mode" value="buy_now" />
+            {% if filter_q %}<input type="hidden" name="q" value="{{ filter_q }}" />{% endif %}
+            {% if filter_category %}<input type="hidden" name="category" value="{{ filter_category }}" />{% endif %}
+            {% for t in filter_taxonomies %}<input type="hidden" name="taxonomy" value="{{ t }}" />{% endfor %}
+            {% for c in filter_certs %}<input type="hidden" name="cert" value="{{ c }}" />{% endfor %}
+            {% if filter_price_min %}<input type="hidden" name="price_min" value="{{ filter_price_min }}" />{% endif %}
+            {% if filter_price_max %}<input type="hidden" name="price_max" value="{{ filter_price_max }}" />{% endif %}
+            {% if filter_qty_min %}<input type="hidden" name="qty_min" value="{{ filter_qty_min }}" />{% endif %}
+            {% if filter_rating and filter_rating != 'any' %}<input type="hidden" name="rating" value="{{ filter_rating }}" />{% endif %}
+            {% if filter_coa_only %}<input type="hidden" name="coa_only" value="1" />{% endif %}
+            <label for="shop-sort">Sort by</label>
+            <select id="shop-sort" name="sort" onchange="this.form.submit()">
+              <option value="newest" {% if filter_sort == 'newest' or not filter_sort %}selected{% endif %}>Newest</option>
+              <option value="price_asc" {% if filter_sort == 'price_asc' %}selected{% endif %}>Price (low to high)</option>
+              <option value="price_desc" {% if filter_sort == 'price_desc' %}selected{% endif %}>Price (high to low)</option>
+              <option value="qty_desc" {% if filter_sort == 'qty_desc' %}selected{% endif %}>Quantity available</option>
+              <option value="rating_desc" {% if filter_sort == 'rating_desc' %}selected{% endif %}>Highest rated</option>
+            </select>
+          </form>
+        </div>
+
+        <p class="shop-results-count">{{ listings|length }} listing{% if listings|length != 1 %}s{% endif %}</p>
+
+        {% if listings %}
+          {% include "marketplace/_buy_now_cards.html" %}
+        {% else %}
+          <div class="shop-empty">
+            <p>No listings match your filters</p>
+            <a href="{{ url_for('marketplace', mode='buy_now') }}">Clear filters</a>
+          </div>
+        {% endif %}
+
+        <section class="shop-order wb-panel" id="order-flow">
+          <h2>Request introduction</h2>
+          <p class="wb-panel__lead">Connect with the onboarded supplier. All commercial terms are agreed directly between you and the supplier.</p>
+          {% if prefill_listing_id %}
+            {% set picked = (listings | selectattr('id', 'equalto', prefill_listing_id) | list | first) %}
+            {% if picked %}
+              <p class="wb-order-selected" role="status">
+                Selected: <strong>{{ picked.ingredient }}</strong> · {{ picked.supplier_public_name }} · {{ picked.price_display }}
+              </p>
+            {% endif %}
+          {% endif %}
+          <form method="post" action="{{ url_for('commit_marketplace_begin') }}" class="wb-form" id="order-flow-form">
+            <label>
+              Listing
+              <select name="listing_id" required>
+                <option value="">Select listing…</option>
+                {% for listing in listings %}
+                  <option value="{{ listing.id }}" {% if prefill_listing_id == listing.id %}selected{% endif %}>
+                    {{ listing.ingredient }} — {{ listing.supplier_public_name }}
+                  </option>
+                {% endfor %}
+              </select>
+            </label>
+            <label>Your company<input type="text" name="buyer_company" required /></label>
+            <label>Contact email<input type="email" name="buyer_contact_email" required /></label>
+            <button type="submit" class="shop-btn shop-btn--primary">Continue to supplier terms</button>
+          </form>
+        </section>
+      </div>
+    </div>
   {% endif %}
 
   <script>
@@ -130,6 +183,10 @@
     if (hash === "#order-flow" || hash === "#bid-flow") {
       var el = document.querySelector(hash);
       if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+    if (window.matchMedia("(min-width: 900px)").matches) {
+      var mobile = document.querySelector(".shop-sidebar__mobile");
+      if (mobile) mobile.setAttribute("open", "");
     }
   })();
   </script>

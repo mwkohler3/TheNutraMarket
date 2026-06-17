@@ -12,6 +12,8 @@ try:
 except ImportError:  # pragma: no cover
     stripe = None  # type: ignore
 
+from urllib.parse import urlencode
+
 from flask import Flask, flash, jsonify, redirect, render_template, request, session, url_for
 from werkzeug.middleware.proxy_fix import ProxyFix
 
@@ -1112,6 +1114,193 @@ def listing_days_left(expires_on: str | None) -> int | None:
         return None
 
 
+INGREDIENT_TAXONOMY_OPTIONS = (
+    ("vitamins", "Vitamins"),
+    ("minerals", "Minerals"),
+    ("amino_acids", "Amino acids"),
+    ("botanicals", "Botanicals"),
+    ("protein", "Protein"),
+    ("other", "Other"),
+)
+
+CERTIFICATION_FILTER_OPTIONS = ("Organic", "Non-GMO", "Kosher", "Halal", "NSF")
+
+
+def listing_ingredient_taxonomy(ingredient: str, category: str) -> str:
+    text = (ingredient or "").lower()
+    if category in ("Packaging", "Flavoring"):
+        return "other"
+    if any(x in text for x in ("whey", "protein", "collagen", "peptide", "isolate 90", "hydrolyzed whey")):
+        return "protein"
+    if any(
+        x in text
+        for x in (
+            "creatine",
+            "beta-alanine",
+            "citrulline",
+            "glutamine",
+            "taurine",
+            "bcaa",
+            "eaa",
+            "hmb",
+            "amino",
+        )
+    ):
+        return "amino_acids"
+    if any(x in text for x in ("vitamin", "cholecalciferol", "ascorbic", "vit d", "d3")):
+        return "vitamins"
+    if any(
+        x in text
+        for x in ("magnesium", "zinc", "sodium", "electrolyte", "bicarbonate", "bisglycinate", "glycinate")
+    ):
+        return "minerals"
+    if any(
+        x in text
+        for x in (
+            "ashwagandha",
+            "rhodiola",
+            "turmeric",
+            "curcumin",
+            "green tea",
+            "beet",
+            "botanical",
+            "herbal",
+            "extract",
+            "ksm-66",
+            "stevia",
+            "monk fruit",
+        )
+    ):
+        return "botanicals"
+    return "other"
+
+
+def listing_taxonomy_monogram(taxonomy: str) -> str:
+    return {
+        "vitamins": "VI",
+        "minerals": "MI",
+        "amino_acids": "AA",
+        "botanicals": "BO",
+        "protein": "PR",
+        "other": "OT",
+    }.get(taxonomy, "OT")
+
+
+def listing_form_label(ingredient: str, notes: str) -> str:
+    text = f"{ingredient} {notes}".lower()
+    if "liquid" in text or " oil" in text:
+        return "Liquid"
+    if "granular" in text:
+        return "Granular"
+    if any(x in text for x in ("mesh", "micronized", "powder", "instantized", "instant")):
+        return "Powder"
+    if "unit" in text or "bottle" in text or "pouch" in text or "cap" in text:
+        return "Unit"
+    return "Powder"
+
+
+def listing_certifications_from_notes(notes: str) -> list[str]:
+    n = (notes or "").lower()
+    found: list[str] = []
+    for cert, keys in (
+        ("Organic", ("organic",)),
+        ("Non-GMO", ("non-gmo", "nongmo")),
+        ("Kosher", ("kosher",)),
+        ("Halal", ("halal",)),
+        ("NSF", ("nsf",)),
+    ):
+        if any(k in n for k in keys):
+            found.append(cert)
+    return found
+
+
+def listing_price_tier_chips(listing: dict) -> list[str]:
+    """Volume tier hints from notes; estimated $/kg when notes mention breaks/thresholds."""
+    notes = (listing.get("notes") or "").lower()
+    price = float(listing.get("price_per_kg") or 0)
+    if not price or not any(k in notes for k in ("moq", "threshold", "volume", "break", "drop")):
+        return []
+    return [
+        f"25kg+: ${price * 0.92:.2f}",
+        f"100kg+: ${price * 0.85:.2f}",
+    ]
+
+
+def listing_listed_date_label(created_at: str | None) -> str:
+    if not created_at:
+        return ""
+    try:
+        dt = datetime.fromisoformat(str(created_at)[:19])
+        return f"Listed {dt.strftime('%b %d, %Y')}"
+    except ValueError:
+        return ""
+
+
+def _num_arg(val: str | None) -> float | None:
+    if val is None or not str(val).strip():
+        return None
+    try:
+        return float(val)
+    except ValueError:
+        return None
+
+
+def apply_buy_now_listing_filters(listings: list[dict], args) -> list[dict]:
+    taxonomies = [t.strip() for t in args.getlist("taxonomy") if t.strip()]
+    certs = [c.strip() for c in args.getlist("cert") if c.strip()]
+    price_min = _num_arg(args.get("price_min"))
+    price_max = _num_arg(args.get("price_max"))
+    qty_min = _num_arg(args.get("qty_min"))
+    rating_floor = (args.get("rating") or "any").strip().lower()
+    coa_only = (args.get("coa_only") or "").strip().lower() in ("1", "true", "yes", "on")
+    cat = (args.get("category") or "").strip()
+    q = (args.get("q") or "").strip().lower()
+
+    out = listings
+    if cat:
+        out = [x for x in out if x.get("category") == cat]
+    if taxonomies:
+        out = [x for x in out if x.get("ingredient_taxonomy") in taxonomies]
+    if certs:
+        out = [x for x in out if any(c in (x.get("certifications") or []) for c in certs)]
+    if price_min is not None:
+        out = [x for x in out if float(x.get("price_per_kg") or 0) >= price_min]
+    if price_max is not None:
+        out = [x for x in out if float(x.get("price_per_kg") or 0) <= price_max]
+    if qty_min is not None:
+        out = [x for x in out if float(x.get("quantity_kg") or 0) >= qty_min]
+    if rating_floor == "4":
+        out = [x for x in out if float(x.get("supplier_rating_avg") or 0) >= 4]
+    elif rating_floor == "3":
+        out = [x for x in out if float(x.get("supplier_rating_avg") or 0) >= 3]
+    if coa_only:
+        out = [x for x in out if x.get("coa_on_file")]
+    if q:
+        out = [
+            x
+            for x in out
+            if q
+            in f"{x.get('ingredient', '')} {x.get('supplier_public_name', '')} {x.get('notes', '')} {x.get('coa_document', '')}".lower()
+        ]
+    return out
+
+
+def sort_buy_now_listings(listings: list[dict], sort_key: str) -> list[dict]:
+    key = (sort_key or "newest").strip().lower()
+    items = list(listings)
+    if key == "price_asc":
+        items.sort(key=lambda x: float(x.get("price_per_kg") or 0))
+    elif key == "price_desc":
+        items.sort(key=lambda x: float(x.get("price_per_kg") or 0), reverse=True)
+    elif key == "qty_desc":
+        items.sort(key=lambda x: float(x.get("quantity_kg") or 0), reverse=True)
+    elif key == "rating_desc":
+        items.sort(key=lambda x: float(x.get("supplier_rating_avg") or 0), reverse=True)
+    else:
+        items.sort(key=lambda x: x.get("created_at", ""), reverse=True)
+    return items
+
+
 def listings_for_marketplace_view(sale_mode: str | None = None) -> list[dict]:
     """Public catalog rows with supplier name, category, WineBid-style display fields."""
     ensure_all_listing_supplier_codes()
@@ -1134,12 +1323,27 @@ def listings_for_marketplace_view(sale_mode: str | None = None) -> list[dict]:
         item["sale_mode"] = mode
         item["supplier_public_code"] = code
         item["supplier_rating_display"] = format_supplier_rating_pill(agg)
+        item["supplier_rating_avg"] = float(agg["avg"]) if agg and agg.get("count") else 0.0
         item["supplier_public_name"] = str(listing.get("supplier_company") or "Supplier")
         item["category"] = str(listing.get("category") or "Ingredient")
         item["unit"] = unit
-        item["badge"] = "Auction" if mode == "auction" else listing_display_badge(listing)
+        taxonomy = listing_ingredient_taxonomy(str(listing.get("ingredient") or ""), item["category"])
+        item["ingredient_taxonomy"] = taxonomy
+        item["taxonomy_monogram"] = listing_taxonomy_monogram(taxonomy)
+        item["form_label"] = listing_form_label(str(listing.get("ingredient") or ""), str(listing.get("notes") or ""))
+        item["certifications"] = listing_certifications_from_notes(str(listing.get("notes") or ""))
+        item["price_tier_chips"] = listing_price_tier_chips(listing)
+        item["coa_on_file"] = bool(str(listing.get("coa_document") or "").strip())
+        item["supplier_verified"] = supplier_subscription_active(
+            str(listing.get("supplier_company") or ""),
+            str(listing.get("supplier_contact_email") or ""),
+        )
+        item["listed_date_label"] = listing_listed_date_label(listing.get("created_at"))
         days = listing_days_left(listing.get("expires_on"))
         item["days_left"] = days
+        item["expires_soon"] = days is not None and days <= 14
+        item["expires_urgent"] = days is not None and days < 5
+        item["badge"] = "Auction" if mode == "auction" else listing_display_badge(listing)
         item["days_left_label"] = f"{days} days left" if days is not None else "Open lot"
         listing_bids = bids_for_listing(str(listing.get("id")), all_bids)
         item["bid_count"] = len(listing_bids)
@@ -1166,7 +1370,10 @@ def listings_for_marketplace_view(sale_mode: str | None = None) -> list[dict]:
             item["price_display"] = f"${price:,.2f}/{unit if unit != 'kg' else 'kg'}"
             item["time_label"] = item["days_left_label"]
         out.append(item)
-    out.sort(key=lambda x: str(x.get("ingredient") or "").lower())
+    if sale_mode != "auction":
+        out.sort(key=lambda x: x.get("created_at", ""), reverse=True)
+    else:
+        out.sort(key=lambda x: str(x.get("ingredient") or "").lower())
     return out
 
 
@@ -1476,6 +1683,20 @@ def inject_form_choices() -> dict:
     }
 
 
+@app.template_global()
+def marketplace_listing_href(listing_id: str) -> str:
+    """Preserve current marketplace query params when linking to a listing."""
+    pairs: list[tuple[str, str]] = []
+    for key in request.args:
+        if key == "listing":
+            continue
+        for val in request.args.getlist(key):
+            pairs.append((key, val))
+    pairs.append(("listing", listing_id))
+    qs = urlencode(pairs)
+    return f"{url_for('marketplace')}?{qs}" if qs else url_for("marketplace", listing=listing_id)
+
+
 @app.before_request
 def gate_marketplace_members() -> None | object:
     path = request.path or ""
@@ -1569,15 +1790,28 @@ def marketplace():
     listings_for_view = listings_for_marketplace_view(sale_mode=mode)
     q = request.args.get("q", "").strip().lower()
     cat = request.args.get("category", "").strip()
-    if cat:
-        listings_for_view = [x for x in listings_for_view if x.get("category") == cat]
-    if q:
-        listings_for_view = [
-            x
-            for x in listings_for_view
-            if q
-            in f"{x.get('ingredient', '')} {x.get('supplier_public_name', '')} {x.get('notes', '')} {x.get('coa_document', '')}".lower()
-        ]
+    sort_key = request.args.get("sort", "newest").strip()
+    filter_taxonomies = [t.strip() for t in request.args.getlist("taxonomy") if t.strip()]
+    filter_certs = [c.strip() for c in request.args.getlist("cert") if c.strip()]
+    filter_price_min = request.args.get("price_min", "").strip()
+    filter_price_max = request.args.get("price_max", "").strip()
+    filter_qty_min = request.args.get("qty_min", "").strip()
+    filter_rating = request.args.get("rating", "any").strip()
+    filter_coa_only = request.args.get("coa_only", "").strip().lower() in ("1", "true", "yes", "on")
+
+    if mode == "buy_now":
+        listings_for_view = apply_buy_now_listing_filters(listings_for_view, request.args)
+        listings_for_view = sort_buy_now_listings(listings_for_view, sort_key)
+    else:
+        if cat:
+            listings_for_view = [x for x in listings_for_view if x.get("category") == cat]
+        if q:
+            listings_for_view = [
+                x
+                for x in listings_for_view
+                if q
+                in f"{x.get('ingredient', '')} {x.get('supplier_public_name', '')} {x.get('notes', '')} {x.get('coa_document', '')}".lower()
+            ]
     matches = build_marketplace_matches()
     raw_listing = request.args.get("listing", "").strip()
     prefill_listing_id = ""
@@ -1593,6 +1827,16 @@ def marketplace():
         marketplace_mode=mode,
         filter_q=q,
         filter_category=cat,
+        filter_sort=sort_key,
+        filter_taxonomies=filter_taxonomies,
+        filter_certs=filter_certs,
+        filter_price_min=filter_price_min,
+        filter_price_max=filter_price_max,
+        filter_qty_min=filter_qty_min,
+        filter_rating=filter_rating,
+        filter_coa_only=filter_coa_only,
+        ingredient_taxonomy_options=INGREDIENT_TAXONOMY_OPTIONS,
+        certification_filter_options=CERTIFICATION_FILTER_OPTIONS,
     )
 
 
