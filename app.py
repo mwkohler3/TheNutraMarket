@@ -43,6 +43,7 @@ MARKETPLACE_LISTINGS_FILE = DATA_DIR / "marketplace_listings.json"
 MARKETPLACE_ALERTS_FILE = DATA_DIR / "marketplace_alerts.json"
 MARKETPLACE_DEALS_FILE = DATA_DIR / "marketplace_deals.json"
 MARKETPLACE_COMMITS_FILE = DATA_DIR / "marketplace_commits.json"
+MARKETPLACE_REPORTED_TRANSACTIONS_FILE = DATA_DIR / "marketplace_reported_transactions.json"
 MARKETPLACE_SUPPLIER_SUBSCRIPTIONS_FILE = DATA_DIR / "marketplace_supplier_subscriptions.json"
 MARKETPLACE_FORUM_THREADS_FILE = DATA_DIR / "marketplace_forum_threads.json"
 MARKETPLACE_SUPPLIER_RATINGS_FILE = DATA_DIR / "marketplace_supplier_ratings.json"
@@ -65,6 +66,10 @@ SUPPLIER_LAUNCH_FREE = os.environ.get("SUPPLIER_LAUNCH_FREE", "1").lower() in ("
 MARKETPLACE_AGREEMENT_VERSION = "v2-supplier-direct-terms"
 SESSION_PENDING_COMMIT_KEY = "marketplace_pending_commit"
 SESSION_MARKETPLACE_ACCESS = "marketplace_member_access"
+SESSION_SUPPLIER_REPORT_AUTH = "marketplace_supplier_report_auth"
+SESSION_ADMIN_AUTH = "marketplace_admin_auth"
+MARKETPLACE_ADMIN_PASSWORD = os.environ.get("MARKETPLACE_ADMIN_PASSWORD", "").strip()
+PLATFORM_SOURCED_FOLLOWUP_DAYS = 45
 SITE_NAME = "TheNutraMarket"
 SITE_TAGLINE = "Instant inventory marketplace for sports nutrition"
 SITE_LEGAL_NAME = os.environ.get("SITE_LEGAL_NAME", "TheNutraMarket.com")
@@ -78,6 +83,12 @@ _PUBLIC_MARKETPLACE_ENDPOINTS = frozenset(
         "supplier_subscribe",
         "supplier_subscribe_success",
         "stripe_webhook",
+        "marketplace_supplier_report",
+        "marketplace_supplier_report_submit",
+        "marketplace_supplier_report_login",
+        "marketplace_admin_login",
+        "marketplace_admin_transactions",
+        "marketplace_admin_logout",
     }
 )
 
@@ -371,6 +382,8 @@ def ensure_data_store() -> None:
         MARKETPLACE_DEALS_FILE.write_text("[]", encoding="utf-8")
     if not MARKETPLACE_COMMITS_FILE.exists():
         MARKETPLACE_COMMITS_FILE.write_text("[]", encoding="utf-8")
+    if not MARKETPLACE_REPORTED_TRANSACTIONS_FILE.exists():
+        MARKETPLACE_REPORTED_TRANSACTIONS_FILE.write_text("[]", encoding="utf-8")
     if not MARKETPLACE_SUPPLIER_SUBSCRIPTIONS_FILE.exists():
         MARKETPLACE_SUPPLIER_SUBSCRIPTIONS_FILE.write_text("[]", encoding="utf-8")
     if not MARKETPLACE_FORUM_THREADS_FILE.exists():
@@ -419,11 +432,131 @@ def save_marketplace_deals(deals: list[dict]) -> None:
 
 
 def load_marketplace_commits() -> list[dict]:
-    return _safe_load_json_list(MARKETPLACE_COMMITS_FILE)
+    return [normalize_commit_record(row) for row in _safe_load_json_list(MARKETPLACE_COMMITS_FILE)]
 
 
 def save_marketplace_commits(commits: list[dict]) -> None:
-    MARKETPLACE_COMMITS_FILE.write_text(json.dumps(commits, indent=2), encoding="utf-8")
+    prior: dict[str, dict] = {}
+    if MARKETPLACE_COMMITS_FILE.exists():
+        for row in _safe_load_json_list(MARKETPLACE_COMMITS_FILE):
+            cid = str(row.get("id") or "")
+            if cid:
+                prior[cid] = row
+    merged: list[dict] = []
+    for commit in commits:
+        row = normalize_commit_record(dict(commit))
+        old = prior.get(str(row.get("id") or ""))
+        if old and old.get("platform_sourced"):
+            row["platform_sourced"] = True
+        merged.append(row)
+    MARKETPLACE_COMMITS_FILE.write_text(json.dumps(merged, indent=2), encoding="utf-8")
+
+
+def load_reported_transactions() -> list[dict]:
+    return _safe_load_json_list(MARKETPLACE_REPORTED_TRANSACTIONS_FILE)
+
+
+def save_reported_transactions(rows: list[dict]) -> None:
+    MARKETPLACE_REPORTED_TRANSACTIONS_FILE.write_text(json.dumps(rows, indent=2), encoding="utf-8")
+
+
+def normalize_commit_record(commit: dict, listing: dict | None = None) -> dict:
+    """Ensure commit rows include platform-sourced fields; flag is sticky once true."""
+    out = dict(commit)
+    if listing:
+        out.setdefault("supplier_public_code", str(listing.get("supplier_public_code") or ""))
+        out.setdefault("supplier_company", str(listing.get("supplier_company") or ""))
+        out.setdefault("ingredient", str(listing.get("ingredient") or ""))
+    if out.get("platform_sourced"):
+        out["platform_sourced"] = True
+    elif out.get("buyer_name") or out.get("agreement_accepted"):
+        out["platform_sourced"] = True
+    return out
+
+
+def mark_commit_platform_sourced(commit: dict, listing: dict) -> dict:
+    row = normalize_commit_record(commit, listing)
+    row["platform_sourced"] = True
+    row["supplier_public_code"] = str(listing.get("supplier_public_code") or row.get("supplier_public_code") or "")
+    row["supplier_company"] = str(listing.get("supplier_company") or row.get("supplier_company") or "")
+    row["listing_id"] = str(listing.get("id") or row.get("listing_id") or "")
+    row.setdefault("ingredient", str(listing.get("ingredient") or ""))
+    return row
+
+
+def _parse_commit_timestamp(commit: dict) -> datetime | None:
+    raw = commit.get("timestamp") or commit.get("agreement_accepted_at")
+    if not raw:
+        return None
+    try:
+        return datetime.fromisoformat(str(raw).replace("Z", "+00:00")[:19])
+    except ValueError:
+        return None
+
+
+def commit_matches_reported_transaction(commit: dict, report: dict) -> bool:
+    if str(commit.get("supplier_public_code") or "") != str(report.get("supplier_public_code") or ""):
+        return False
+    commit_company = _norm_company(str(commit.get("buyer_company") or ""))
+    commit_email = _norm_email(str(commit.get("buyer_contact_email") or ""))
+    report_company = _norm_company(str(report.get("buyer_company") or ""))
+    report_email = _norm_email(str(report.get("buyer_contact_email") or ""))
+    if commit_email and report_email and commit_email == report_email:
+        return True
+    if commit_company and report_company and commit_company == report_company:
+        return True
+    return False
+
+
+def commit_has_matching_report(commit: dict, reports: list[dict]) -> bool:
+    return any(commit_matches_reported_transaction(commit, r) for r in reports)
+
+
+def commit_is_unreported_platform_sourced(commit: dict, reports: list[dict], ref: datetime | None = None) -> bool:
+    if not commit.get("platform_sourced"):
+        return False
+    ts = _parse_commit_timestamp(commit)
+    if not ts:
+        return False
+    now = ref or datetime.now()
+    if (now - ts).days <= PLATFORM_SOURCED_FOLLOWUP_DAYS:
+        return False
+    return not commit_has_matching_report(commit, reports)
+
+
+def supplier_subscription_by_access(company: str, access_code: str) -> dict | None:
+    company_n = _norm_company(company)
+    code = (access_code or "").strip().upper()
+    if not company_n or not code:
+        return None
+    for sub in load_supplier_subscriptions():
+        st = (sub.get("status") or "active").lower()
+        if st not in ("active", "trialing"):
+            continue
+        if _norm_company(sub.get("company_name", "")) != company_n:
+            continue
+        sub_code = str(sub.get("access_code") or "").strip().upper()
+        if sub_code == code:
+            return sub
+    return None
+
+
+def platform_sourced_commits_for_supplier(supplier_public_code: str) -> list[dict]:
+    code = str(supplier_public_code or "").strip()
+    return [
+        c
+        for c in load_marketplace_commits()
+        if c.get("platform_sourced") and str(c.get("supplier_public_code") or "") == code
+    ]
+
+
+def admin_authenticated() -> bool:
+    return bool(SESSION_ADMIN_AUTH in session and session.get(SESSION_ADMIN_AUTH) is True)
+
+
+def supplier_report_authenticated() -> dict | None:
+    row = session.get(SESSION_SUPPLIER_REPORT_AUTH)
+    return row if isinstance(row, dict) else None
 
 
 def load_marketplace_bids() -> list[dict]:
@@ -1925,6 +2058,171 @@ def marketplace_suppliers():
     )
 
 
+@app.route("/marketplace/suppliers/report", methods=["GET", "POST"])
+def marketplace_supplier_report():
+    auth = supplier_report_authenticated()
+    if request.method == "POST" and request.form.get("action") == "login":
+        company = request.form.get("company_name", "").strip()
+        access_code = request.form.get("access_code", "").strip()
+        sub = supplier_subscription_by_access(company, access_code)
+        if not sub:
+            flash("Company and access code did not match an active supplier subscription.", "error")
+            return redirect(url_for("marketplace_supplier_report"))
+        session[SESSION_SUPPLIER_REPORT_AUTH] = {
+            "company_name": sub.get("company_name"),
+            "public_supplier_code": sub.get("public_supplier_code"),
+            "access_code": sub.get("access_code"),
+        }
+        flash("Signed in for transaction reporting.", "success")
+        return redirect(url_for("marketplace_supplier_report"))
+
+    if request.method == "POST" and request.form.get("action") == "logout":
+        session.pop(SESSION_SUPPLIER_REPORT_AUTH, None)
+        flash("Signed out of transaction reporting.", "info")
+        return redirect(url_for("marketplace_supplier_report"))
+
+    platform_buyers: list[dict] = []
+    recent_reports: list[dict] = []
+    if auth:
+        code = str(auth.get("public_supplier_code") or "")
+        platform_buyers = platform_sourced_commits_for_supplier(code)
+        recent_reports = sorted(
+            [
+                r
+                for r in load_reported_transactions()
+                if str(r.get("supplier_public_code") or "") == code
+            ],
+            key=lambda r: r.get("reported_at", ""),
+            reverse=True,
+        )[:20]
+
+    summary = build_marketplace_summary()
+    return render_template(
+        "marketplace_supplier_report.html",
+        summary=summary,
+        marketplace_nav_active="suppliers",
+        supplier_auth=auth,
+        platform_buyers=platform_buyers,
+        recent_reports=recent_reports,
+        vig_rate_pct=int(MARKETPLACE_VIG_RATE * 100),
+    )
+
+
+@app.route("/marketplace/suppliers/report/submit", methods=["POST"])
+def marketplace_supplier_report_submit():
+    auth = supplier_report_authenticated()
+    if not auth:
+        flash("Sign in with your supplier company and access code to report a transaction.", "error")
+        return redirect(url_for("marketplace_supplier_report"))
+
+    supplier_company = str(auth.get("company_name") or "").strip()
+    supplier_public_code = str(auth.get("public_supplier_code") or "").strip()
+    buyer_company = request.form.get("buyer_company", "").strip()
+    buyer_contact_email = request.form.get("buyer_contact_email", "").strip()
+    transaction_date = request.form.get("transaction_date", "").strip()
+    gross_raw = request.form.get("gross_value", "").strip()
+    note = request.form.get("note", "").strip()
+
+    if not buyer_company or not transaction_date or not gross_raw:
+        flash("Buyer company, transaction date, and gross value are required.", "error")
+        return redirect(url_for("marketplace_supplier_report"))
+
+    try:
+        gross_value = float(gross_raw)
+    except ValueError:
+        flash("Gross value must be a number.", "error")
+        return redirect(url_for("marketplace_supplier_report"))
+    if gross_value <= 0:
+        flash("Gross value must be greater than zero.", "error")
+        return redirect(url_for("marketplace_supplier_report"))
+
+    try:
+        datetime.strptime(transaction_date, "%Y-%m-%d")
+    except ValueError:
+        flash("Transaction date must be YYYY-MM-DD.", "error")
+        return redirect(url_for("marketplace_supplier_report"))
+
+    platform_commits = platform_sourced_commits_for_supplier(supplier_public_code)
+    probe = {
+        "supplier_public_code": supplier_public_code,
+        "buyer_company": buyer_company,
+        "buyer_contact_email": buyer_contact_email,
+    }
+    if not any(commit_matches_reported_transaction(c, probe) for c in platform_commits):
+        flash(
+            "That buyer does not match a platform-sourced intro on file. "
+            "Use the company (and email if known) from your platform introduction.",
+            "error",
+        )
+        return redirect(url_for("marketplace_supplier_report"))
+
+    fee_owed = round(gross_value * MARKETPLACE_VIG_RATE, 2)
+    row = {
+        "id": str(uuid.uuid4()),
+        "supplier_company": supplier_company,
+        "supplier_public_code": supplier_public_code,
+        "buyer_company": buyer_company,
+        "buyer_contact_email": buyer_contact_email,
+        "transaction_date": transaction_date,
+        "gross_value": gross_value,
+        "fee_owed": fee_owed,
+        "note": note,
+        "reported_at": datetime.now().isoformat(timespec="seconds"),
+        "verified": False,
+    }
+    reports = load_reported_transactions()
+    reports.append(row)
+    save_reported_transactions(reports)
+    flash(
+        f"Transaction reported. Platform fee owed: ${fee_owed:,.2f} ({int(MARKETPLACE_VIG_RATE * 100)}% of ${gross_value:,.2f}).",
+        "success",
+    )
+    return redirect(url_for("marketplace_supplier_report"))
+
+
+@app.route("/marketplace/admin/login", methods=["GET", "POST"])
+def marketplace_admin_login():
+    if request.method == "POST":
+        password = request.form.get("password", "")
+        if not MARKETPLACE_ADMIN_PASSWORD:
+            flash("Admin access is not configured (set MARKETPLACE_ADMIN_PASSWORD).", "error")
+            return redirect(url_for("marketplace_admin_login"))
+        if password == MARKETPLACE_ADMIN_PASSWORD:
+            session[SESSION_ADMIN_AUTH] = True
+            return redirect(url_for("marketplace_admin_transactions"))
+        flash("Invalid admin password.", "error")
+    return render_template("marketplace_admin_login.html")
+
+
+@app.route("/marketplace/admin/logout")
+def marketplace_admin_logout():
+    session.pop(SESSION_ADMIN_AUTH, None)
+    flash("Signed out of admin.", "info")
+    return redirect(url_for("marketplace_admin_login"))
+
+
+@app.route("/marketplace/admin/transactions")
+def marketplace_admin_transactions():
+    if not admin_authenticated():
+        return redirect(url_for("marketplace_admin_login"))
+
+    reports = sorted(load_reported_transactions(), key=lambda r: r.get("transaction_date", ""), reverse=True)
+    commits = [c for c in load_marketplace_commits() if c.get("platform_sourced")]
+    unreported_commits: list[dict] = []
+    for commit in commits:
+        if commit_is_unreported_platform_sourced(commit, reports):
+            unreported_commits.append(commit)
+    unreported_commits.sort(key=lambda c: c.get("timestamp", ""), reverse=True)
+
+    return render_template(
+        "marketplace_admin_transactions.html",
+        reported_transactions=reports,
+        unreported_commits=unreported_commits,
+        vig_rate_pct=int(MARKETPLACE_VIG_RATE * 100),
+        followup_days=PLATFORM_SOURCED_FOLLOWUP_DAYS,
+    )
+
+
 @app.route("/marketplace/community")
 def marketplace_community():
     forum_threads = sorted(load_forum_threads(), key=lambda x: x.get("created_at", ""), reverse=True)
@@ -2363,19 +2661,22 @@ def request_marketplace_intro():
     if not listing or listing_sale_mode(listing) != "buy_now":
         return respond_error("That listing is not available for a direct intro request.")
 
-    commit_row = {
-        "id": str(uuid.uuid4()),
-        "listing_id": listing_id,
-        "ingredient": str(listing.get("ingredient") or ""),
-        "supplier_public_code": str(listing.get("supplier_public_code") or ""),
-        "buyer_name": buyer_name,
-        "buyer_company": buyer_company,
-        "buyer_contact_email": buyer_contact_email,
-        "buyer_phone": buyer_phone,
-        "note": note,
-        "timestamp": datetime.now().isoformat(timespec="seconds"),
-        "agreement_accepted": False,
-    }
+    commit_row = mark_commit_platform_sourced(
+        {
+            "id": str(uuid.uuid4()),
+            "listing_id": listing_id,
+            "ingredient": str(listing.get("ingredient") or ""),
+            "supplier_public_code": str(listing.get("supplier_public_code") or ""),
+            "buyer_name": buyer_name,
+            "buyer_company": buyer_company,
+            "buyer_contact_email": buyer_contact_email,
+            "buyer_phone": buyer_phone,
+            "note": note,
+            "timestamp": datetime.now().isoformat(timespec="seconds"),
+            "agreement_accepted": False,
+        },
+        listing,
+    )
     commits = load_marketplace_commits()
     commits.append(commit_row)
     save_marketplace_commits(commits)
@@ -2441,7 +2742,8 @@ def commit_marketplace_confirm():
     buyer_contact_email = str(pending.get("buyer_contact_email") or "").strip()
 
     listings = load_marketplace_listings()
-    if not any(item.get("id") == listing_id for item in listings):
+    listing = next((item for item in listings if str(item.get("id")) == listing_id), None)
+    if not listing:
         session.pop(SESSION_PENDING_COMMIT_KEY, None)
         flash("Listing not found.", "error")
         return redirect(url_for("marketplace"))
@@ -2455,19 +2757,24 @@ def commit_marketplace_confirm():
 
     commit_id = str(uuid.uuid4())
     accepted_at = datetime.now().isoformat(timespec="seconds")
-    commit_row = {
-        "id": commit_id,
-        "listing_id": listing_id,
-        "buyer_company": buyer_company,
-        "buyer_contact_email": buyer_contact_email,
-        "agreement_accepted": True,
-        "agreement_version": MARKETPLACE_AGREEMENT_VERSION,
-        "agreement_accepted_at": accepted_at,
-        "effective_date": effective_date,
-        "signer_name": signer_name,
-        "signer_title": signer_title,
-        "signature": signature,
-    }
+    commit_row = mark_commit_platform_sourced(
+        {
+            "id": commit_id,
+            "listing_id": listing_id,
+            "buyer_company": buyer_company,
+            "buyer_contact_email": buyer_contact_email,
+            "buyer_phone": str(pending.get("buyer_phone") or ""),
+            "timestamp": accepted_at,
+            "agreement_accepted": True,
+            "agreement_version": MARKETPLACE_AGREEMENT_VERSION,
+            "agreement_accepted_at": accepted_at,
+            "effective_date": effective_date,
+            "signer_name": signer_name,
+            "signer_title": signer_title,
+            "signature": signature,
+        },
+        listing,
+    )
     commits.append(commit_row)
     save_marketplace_commits(commits)
 

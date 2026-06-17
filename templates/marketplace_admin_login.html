@@ -1,0 +1,16 @@
+{% extends "marketplace_layout.html" %}
+{% block marketplace_title %}Admin sign-in{% endblock %}
+
+{% block marketplace_body %}
+  <section class="wb-page-head">
+    <h1>Marketplace admin</h1>
+    <p>Review supplier-reported transactions and follow up on unreported platform-sourced introductions.</p>
+  </section>
+
+  <section class="wb-panel wb-panel--narrow">
+    <form method="post" action="{{ url_for('marketplace_admin_login') }}" class="wb-form">
+      <label>Admin password<input type="password" name="password" required autocomplete="current-password" /></label>
+      <button type="submit" class="wb-btn">Sign in</button>
+    </form>
+  </section>
+{% endblock %}

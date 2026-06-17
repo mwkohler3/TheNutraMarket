@@ -1,0 +1,117 @@
+{% extends "marketplace_layout.html" %}
+{% block marketplace_title %}Report transactions{% endblock %}
+
+{% block marketplace_body %}
+  <section class="wb-page-head">
+    <h1>Monthly transaction reporting</h1>
+    <p>Report completed sales with buyers introduced through the platform. A {{ vig_rate_pct }}% platform fee is calculated for manual invoicing — no automatic payment collection.</p>
+    <p><a href="{{ url_for('marketplace_suppliers') }}">← Back to supplier tools</a></p>
+  </section>
+
+  {% if not supplier_auth %}
+    <section class="wb-panel wb-panel--narrow">
+      <h2>Supplier sign-in</h2>
+      <p class="wb-panel__lead">Use the company name and access code from your supplier enrollment.</p>
+      <form method="post" action="{{ url_for('marketplace_supplier_report') }}" class="wb-form">
+        <input type="hidden" name="action" value="login" />
+        <label>Company name<input type="text" name="company_name" required autocomplete="organization" /></label>
+        <label>Access code<input type="text" name="access_code" required autocomplete="off" /></label>
+        <button type="submit" class="wb-btn">Sign in</button>
+      </form>
+    </section>
+  {% else %}
+    <section class="wb-panel">
+      <div class="wb-report-auth-bar">
+        <p>Signed in as <strong>{{ supplier_auth.company_name }}</strong> ({{ supplier_auth.public_supplier_code }})</p>
+        <form method="post" action="{{ url_for('marketplace_supplier_report') }}">
+          <input type="hidden" name="action" value="logout" />
+          <button type="submit" class="wb-btn wb-btn--ghost">Sign out</button>
+        </form>
+      </div>
+    </section>
+
+    <div class="wb-split">
+      <section class="wb-panel">
+        <h2>Report a transaction</h2>
+        <p class="wb-panel__lead">Buyer details should match a platform-sourced introduction below.</p>
+        <form method="post" action="{{ url_for('marketplace_supplier_report_submit') }}" class="wb-form">
+          <label>Buyer company<input type="text" name="buyer_company" required list="platform-buyers" /></label>
+          <datalist id="platform-buyers">
+            {% for c in platform_buyers %}
+              <option value="{{ c.buyer_company }}">{{ c.buyer_contact_email or '' }}</option>
+            {% endfor %}
+          </datalist>
+          <label>Buyer email (if known)<input type="email" name="buyer_contact_email" list="platform-buyer-emails" placeholder="Optional but helps matching" /></label>
+          <datalist id="platform-buyer-emails">
+            {% for c in platform_buyers if c.buyer_contact_email %}
+              <option value="{{ c.buyer_contact_email }}">{{ c.buyer_company }}</option>
+            {% endfor %}
+          </datalist>
+          <label>Transaction date<input type="date" name="transaction_date" required /></label>
+          <label>Gross transaction value (USD)<input type="number" name="gross_value" step="0.01" min="0.01" required /></label>
+          <label>Note (optional)<textarea name="note" rows="3" placeholder="PO number, shipment details…"></textarea></label>
+          <button type="submit" class="wb-btn">Submit report</button>
+        </form>
+      </section>
+
+      <section class="wb-panel">
+        <h2>Platform-sourced buyers on file</h2>
+        <p class="wb-panel__lead">These introductions are recorded as originating through the marketplace.</p>
+        {% if platform_buyers %}
+          <div class="wb-table-wrap">
+            <table class="wb-inventory-table">
+              <thead>
+                <tr>
+                  <th>Buyer</th>
+                  <th>Email</th>
+                  <th>Intro date</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for c in platform_buyers %}
+                  <tr>
+                    <td>{{ c.buyer_company or c.buyer_name or '—' }}</td>
+                    <td>{{ c.buyer_contact_email or '—' }}</td>
+                    <td>{{ (c.timestamp or '')[:10] }}</td>
+                  </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        {% else %}
+          <p>No platform-sourced introductions yet for your supplier code.</p>
+        {% endif %}
+      </section>
+    </div>
+
+    {% if recent_reports %}
+      <section class="wb-panel">
+        <h2>Your recent reports</h2>
+        <div class="wb-table-wrap">
+          <table class="wb-inventory-table">
+            <thead>
+              <tr>
+                <th>Date</th>
+                <th>Buyer</th>
+                <th>Gross</th>
+                <th>Fee owed</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for r in recent_reports %}
+                <tr>
+                  <td>{{ r.transaction_date }}</td>
+                  <td>{{ r.buyer_company }}</td>
+                  <td>${{ '%.2f'|format(r.gross_value) }}</td>
+                  <td>${{ '%.2f'|format(r.fee_owed) }}</td>
+                  <td>{% if r.verified %}Verified{% else %}Pending review{% endif %}</td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </section>
+    {% endif %}
+  {% endif %}
+{% endblock %}

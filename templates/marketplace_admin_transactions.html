@@ -1,0 +1,80 @@
+{% extends "marketplace_layout.html" %}
+{% block marketplace_title %}Admin — transactions{% endblock %}
+
+{% block marketplace_body %}
+  <section class="wb-page-head wb-page-head--admin">
+    <div>
+      <h1>Transaction reporting</h1>
+      <p>Manual invoicing view — {{ vig_rate_pct }}% platform fee on reported gross value. No payment processing integrated.</p>
+    </div>
+    <a href="{{ url_for('marketplace_admin_logout') }}" class="wb-btn wb-btn--ghost">Sign out</a>
+  </section>
+
+  {% if unreported_commits %}
+    <section class="wb-panel wb-panel--alert">
+      <h2>Unreported platform introductions</h2>
+      <p class="wb-panel__lead">Platform-sourced buyers with no matching supplier report after {{ followup_days }} days.</p>
+      <div class="wb-table-wrap">
+        <table class="wb-inventory-table">
+          <thead>
+            <tr>
+              <th>Status</th>
+              <th>Supplier</th>
+              <th>Buyer</th>
+              <th>Email</th>
+              <th>Intro date</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for c in unreported_commits %}
+              <tr>
+                <td><span class="wb-badge wb-badge--danger">Unreported</span></td>
+                <td>{{ c.supplier_company or c.supplier_public_code }}</td>
+                <td>{{ c.buyer_company or c.buyer_name or '—' }}</td>
+                <td>{{ c.buyer_contact_email or '—' }}</td>
+                <td>{{ (c.timestamp or c.agreement_accepted_at or '')[:10] }}</td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </section>
+  {% endif %}
+
+  <section class="wb-panel">
+    <h2>Reported transactions</h2>
+    <p class="wb-panel__lead">Sorted by transaction date (newest first).</p>
+    {% if reported_transactions %}
+      <div class="wb-table-wrap">
+        <table class="wb-inventory-table">
+          <thead>
+            <tr>
+              <th>Txn date</th>
+              <th>Supplier</th>
+              <th>Buyer</th>
+              <th>Gross value</th>
+              <th>Fee owed</th>
+              <th>Reported</th>
+              <th>Verified</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for r in reported_transactions %}
+              <tr>
+                <td>{{ r.transaction_date }}</td>
+                <td>{{ r.supplier_company }}<br /><span class="wb-muted">{{ r.supplier_public_code }}</span></td>
+                <td>{{ r.buyer_company }}<br /><span class="wb-muted">{{ r.buyer_contact_email or '' }}</span></td>
+                <td>${{ '%.2f'|format(r.gross_value) }}</td>
+                <td><strong>${{ '%.2f'|format(r.fee_owed) }}</strong></td>
+                <td>{{ (r.reported_at or '')[:10] }}</td>
+                <td>{% if r.verified %}Yes{% else %}No{% endif %}</td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    {% else %}
+      <p>No supplier transaction reports yet.</p>
+    {% endif %}
+  </section>
+{% endblock %}

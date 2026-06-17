@@ -5,6 +5,7 @@
   <section class="wb-page-head">
     <h1>List inventory</h1>
     <p>{% if supplier_launch_free %}Free during launch.{% else %}Active enrollment required.{% endif %} Choose flat-rate shop listings or live auctions for overstock you need to move quickly.</p>
+    <p><a href="{{ url_for('marketplace_supplier_report') }}">Report monthly transactions</a> for platform-sourced buyers ({{ marketplace_vig_pct }}% fee, self-reported).</p>
   </section>
 
   <div class="wb-split">

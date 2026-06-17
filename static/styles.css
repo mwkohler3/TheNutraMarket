@@ -4278,3 +4278,62 @@ html {
   resize: vertical;
   min-height: 4.5rem;
 }
+
+.wb-panel--narrow {
+  max-width: 28rem;
+}
+
+.wb-panel--alert {
+  border-color: #fecaca;
+  background: #fff5f5;
+}
+
+.wb-report-auth-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.wb-report-auth-bar p {
+  margin: 0;
+}
+
+.wb-page-head--admin {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.wb-btn--ghost {
+  background: transparent;
+  color: var(--wb-black);
+  border: 1px solid var(--wb-border, #ccc);
+}
+
+.wb-btn--ghost:hover {
+  background: var(--wb-blue-pale, #f0f7fc);
+}
+
+.wb-badge {
+  display: inline-block;
+  padding: 0.2rem 0.5rem;
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  border-radius: 2px;
+}
+
+.wb-badge--danger {
+  background: #dc2626;
+  color: #fff;
+}
+
+.wb-muted {
+  font-size: 0.78rem;
+  color: #666;
+}
