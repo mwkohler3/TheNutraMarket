@@ -1,0 +1,33 @@
+<dialog class="wb-bid-dialog" id="bid-flow" {% if prefill_listing_id %}open{% endif %}>
+  <div class="wb-bid-dialog__inner">
+    <button type="button" class="wb-bid-dialog__close" aria-label="Close" data-close-bid>&times;</button>
+    <h2>Place a bid</h2>
+    <p class="wb-panel__lead">Winning bidders complete terms directly with the onboarded supplier.</p>
+    {% if prefill_listing_id %}
+      {% set picked = (listings | selectattr('id', 'equalto', prefill_listing_id) | list | first) %}
+      {% if picked %}
+        <p class="wb-order-selected" role="status">
+          <strong>{{ picked.ingredient }}</strong> · {{ picked.supplier_public_name }} ·
+          current {{ picked.price_display }} · min next ${{ '%.2f'|format(picked.min_next_bid_per_kg) }}
+        </p>
+      {% endif %}
+    {% endif %}
+    <form method="post" action="{{ url_for('place_marketplace_bid') }}" class="wb-form" id="bid-flow-form">
+      <label>
+        Auction lot
+        <select name="listing_id" required>
+          <option value="">Select lot…</option>
+          {% for listing in listings %}
+            <option value="{{ listing.id }}" {% if prefill_listing_id == listing.id %}selected{% endif %}>
+              {{ listing.ingredient }} — {{ listing.supplier_public_name }} (min ${{ '%.2f'|format(listing.min_next_bid_per_kg) }})
+            </option>
+          {% endfor %}
+        </select>
+      </label>
+      <label>Bid amount (per unit)<input type="number" step="0.01" min="0" name="bid_per_kg" required /></label>
+      <label>Your company<input type="text" name="bidder_company" required /></label>
+      <label>Contact email<input type="email" name="bidder_contact_email" required /></label>
+      <button type="submit" class="wb-btn">Submit bid</button>
+    </form>
+  </div>
+</dialog>

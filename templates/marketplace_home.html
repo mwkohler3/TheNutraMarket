@@ -9,7 +9,7 @@
       <p class="wb-deal-hero__lead">
         {{ listings|length }} open lot{% if listings|length != 1 %}s{% endif %} — sorted A–Z · bid on discounted inventory from onboarded suppliers
       </p>
-      <a class="wb-btn wb-deal-hero__cta" href="#bid-flow">Place a bid</a>
+      <a class="wb-btn wb-deal-hero__cta" href="#auction-lots">Browse lots</a>
     </section>
 
     <section class="wb-mode-tabs" aria-label="Browse mode">
@@ -49,36 +49,7 @@
       </p>
     {% endif %}
 
-    <section class="wb-panel wb-order" id="bid-flow">
-      <h2>Place a bid</h2>
-      <p class="wb-panel__lead">Bid on overstock lots. Winning bidders complete terms directly with the onboarded supplier.</p>
-      {% if prefill_listing_id %}
-        {% set picked = (listings | selectattr('id', 'equalto', prefill_listing_id) | list | first) %}
-        {% if picked %}
-          <p class="wb-order-selected" role="status">
-            Selected: <strong>{{ picked.ingredient }}</strong> · {{ picked.supplier_public_name }} ·
-            current {{ picked.price_display }} · min next ${{ '%.2f'|format(picked.min_next_bid_per_kg) }}
-          </p>
-        {% endif %}
-      {% endif %}
-      <form method="post" action="{{ url_for('place_marketplace_bid') }}" class="wb-form" id="bid-flow-form">
-        <label>
-          Auction lot
-          <select name="listing_id" required>
-            <option value="">Select lot…</option>
-            {% for listing in listings %}
-              <option value="{{ listing.id }}" {% if prefill_listing_id == listing.id %}selected{% endif %}>
-                {{ listing.ingredient }} — {{ listing.supplier_public_name }} (min ${{ '%.2f'|format(listing.min_next_bid_per_kg) }})
-              </option>
-            {% endfor %}
-          </select>
-        </label>
-        <label>Bid amount (per unit)<input type="number" step="0.01" min="0" name="bid_per_kg" required /></label>
-        <label>Your company<input type="text" name="bidder_company" required /></label>
-        <label>Contact email<input type="email" name="bidder_contact_email" required /></label>
-        <button type="submit" class="wb-btn">Submit bid</button>
-      </form>
-    </section>
+    {% include "marketplace/_auction_bid_modal.html" %}
 
   {% else %}
     <section class="shop-page-head">
@@ -180,9 +151,26 @@
   <script>
   (function () {
     var hash = window.location.hash;
-    if (hash === "#order-flow" || hash === "#bid-flow") {
-      var el = document.querySelector(hash);
-      if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
+    if (hash === "#order-flow") {
+      var order = document.querySelector(hash);
+      if (order) order.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+    var bidDialog = document.getElementById("bid-flow");
+    if (bidDialog && typeof bidDialog.showModal === "function") {
+      if (hash === "#bid-flow" && !bidDialog.open) {
+        bidDialog.showModal();
+      }
+      bidDialog.querySelectorAll("[data-close-bid]").forEach(function (btn) {
+        btn.addEventListener("click", function () {
+          bidDialog.close();
+          if (window.location.hash === "#bid-flow") {
+            history.replaceState(null, "", window.location.pathname + window.location.search);
+          }
+        });
+      });
+      bidDialog.addEventListener("click", function (e) {
+        if (e.target === bidDialog) bidDialog.close();
+      });
     }
     if (window.matchMedia("(min-width: 900px)").matches) {
       var mobile = document.querySelector(".shop-sidebar__mobile");

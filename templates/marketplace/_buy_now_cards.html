@@ -4,9 +4,7 @@
       class="shop-card{% if prefill_listing_id == listing.id %} shop-card--selected{% endif %}"
       data-taxonomy="{{ listing.ingredient_taxonomy }}"
     >
-      <div class="shop-card__monogram shop-card__monogram--{{ listing.ingredient_taxonomy }}" aria-hidden="true">
-        {{ listing.taxonomy_monogram }}
-      </div>
+      {% include "marketplace/_shop_card_visual.html" %}
 
       <div class="shop-card__head">
         <h3 class="shop-card__title">{{ listing.ingredient }}</h3>

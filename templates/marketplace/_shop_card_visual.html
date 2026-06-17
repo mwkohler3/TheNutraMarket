@@ -1,0 +1,27 @@
+<div class="shop-card__visual shop-card__visual--{{ listing.visual_type }}" aria-hidden="true">
+  {% if listing.visual_type == 'packaging' %}
+    <svg class="shop-card__art" viewBox="0 0 120 80" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <rect x="28" y="18" width="44" height="52" rx="3" stroke="currentColor" stroke-width="2" opacity="0.55"/>
+      <rect x="34" y="24" width="32" height="14" rx="1" fill="currentColor" opacity="0.12"/>
+      <path d="M76 30h18v40H76V30z" stroke="currentColor" stroke-width="2" opacity="0.4"/>
+      <path d="M18 58h84" stroke="currentColor" stroke-width="1.5" opacity="0.2"/>
+    </svg>
+  {% elif listing.visual_type == 'flavoring' %}
+    <svg class="shop-card__art" viewBox="0 0 120 80" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path d="M42 62V38l12-18h12l12 18v24" stroke="currentColor" stroke-width="2" opacity="0.5"/>
+      <ellipse cx="60" cy="62" rx="18" ry="5" stroke="currentColor" stroke-width="2" opacity="0.35"/>
+      <path d="M48 34c6-4 18-4 24 0" stroke="currentColor" stroke-width="2" opacity="0.45"/>
+      <circle cx="72" cy="28" r="4" fill="currentColor" opacity="0.2"/>
+    </svg>
+  {% else %}
+    <svg class="shop-card__art" viewBox="0 0 120 80" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <ellipse cx="60" cy="58" rx="38" ry="10" fill="currentColor" opacity="0.1"/>
+      <path d="M24 58c4-22 16-34 36-36s32 14 36 36" stroke="currentColor" stroke-width="2" opacity="0.45"/>
+      <path d="M34 52c8-8 18-12 26-12s18 4 26 12" stroke="currentColor" stroke-width="1.5" opacity="0.3"/>
+      <circle cx="44" cy="40" r="2" fill="currentColor" opacity="0.25"/>
+      <circle cx="58" cy="34" r="2.5" fill="currentColor" opacity="0.2"/>
+      <circle cx="72" cy="41" r="2" fill="currentColor" opacity="0.25"/>
+    </svg>
+  {% endif %}
+  <span class="shop-card__visual-badge shop-card__monogram--{{ listing.ingredient_taxonomy }}">{{ listing.taxonomy_monogram }}</span>
+</div>

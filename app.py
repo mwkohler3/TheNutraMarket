@@ -1199,6 +1199,15 @@ def listing_form_label(ingredient: str, notes: str) -> str:
     return "Powder"
 
 
+def listing_visual_type(category: str) -> str:
+    c = (category or "Ingredient").strip().lower()
+    if c == "packaging":
+        return "packaging"
+    if c == "flavoring":
+        return "flavoring"
+    return "ingredient"
+
+
 def listing_certifications_from_notes(notes: str) -> list[str]:
     n = (notes or "").lower()
     found: list[str] = []
@@ -1331,6 +1340,7 @@ def listings_for_marketplace_view(sale_mode: str | None = None) -> list[dict]:
         item["ingredient_taxonomy"] = taxonomy
         item["taxonomy_monogram"] = listing_taxonomy_monogram(taxonomy)
         item["form_label"] = listing_form_label(str(listing.get("ingredient") or ""), str(listing.get("notes") or ""))
+        item["visual_type"] = listing_visual_type(item["category"])
         item["certifications"] = listing_certifications_from_notes(str(listing.get("notes") or ""))
         item["price_tier_chips"] = listing_price_tier_chips(listing)
         item["coa_on_file"] = bool(str(listing.get("coa_document") or "").strip())

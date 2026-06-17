@@ -1,4 +1,4 @@
-<div class="table-responsive wb-table-wrap">
+<div class="table-responsive wb-table-wrap" id="auction-lots">
   <table class="wb-inventory-table {% if marketplace_mode == 'auction' %}wb-inventory-table--auction{% endif %}">
     <thead>
       <tr>
@@ -51,7 +51,7 @@
           <td class="wb-inventory-time">{{ listing.time_label }}</td>
           <td class="wb-inventory-action">
             {% if listing.sale_mode == 'auction' %}
-              <a class="wb-table-btn wb-table-btn--auction" href="{{ url_for('marketplace', mode='auction', listing=listing.id) }}#bid-flow">Place bid</a>
+              <a class="wb-table-btn wb-table-btn--auction" href="{{ marketplace_listing_href(listing.id) }}#bid-flow">Place bid</a>
             {% else %}
               <a class="wb-table-btn" href="{{ url_for('marketplace', mode='buy_now', listing=listing.id) }}#order-flow">Request intro</a>
             {% endif %}
