@@ -1,56 +1,47 @@
-<div class="shop-grid">
+<div class="trade-grid">
   {% for listing in listings %}
     <article
-      class="shop-card{% if prefill_listing_id == listing.id %} shop-card--selected{% endif %}"
+      class="trade-card{% if prefill_listing_id == listing.id %} trade-card--selected{% endif %}"
       data-taxonomy="{{ listing.ingredient_taxonomy }}"
     >
-      {% include "marketplace/_shop_card_visual.html" %}
-
-      <div class="shop-card__head">
-        <h3 class="shop-card__title">{{ listing.ingredient }}</h3>
-        <p class="shop-card__form">{{ listing.form_label }}</p>
+      <div class="trade-card__icon trade-card__icon--{{ listing.ingredient_taxonomy }}" aria-hidden="true">
+        <span>{{ listing.taxonomy_monogram }}</span>
       </div>
 
-      <div class="shop-card__price-row">
-        <p class="shop-card__price">{{ listing.price_amount }}<span>/{{ listing.unit if listing.unit != 'kg' else 'kg' }}</span></p>
-        {% if listing.price_tier_chips %}
-          <div class="shop-card__tiers">
-            {% for chip in listing.price_tier_chips %}
-              <span class="shop-tier-chip">{{ chip }}</span>
-            {% endfor %}
-          </div>
-        {% endif %}
+      <div class="trade-card__head">
+        <h3 class="trade-card__title">{{ listing.ingredient }}</h3>
+        <p class="trade-card__form">{{ listing.form_label }}</p>
       </div>
 
-      <div class="shop-card__trust">
-        {% if listing.coa_on_file %}
-          <span class="shop-trust shop-trust--coa">✓ COA on file</span>
-        {% else %}
-          <span class="shop-trust shop-trust--muted">No COA listed</span>
-        {% endif %}
-        <span class="shop-trust shop-trust--rating">{{ listing.supplier_rating_display }}</span>
-        {% if listing.supplier_verified %}
-          <span class="shop-trust shop-trust--verified">Verified Supplier</span>
-        {% endif %}
+      <div class="trade-card__price-block">
+        <p class="trade-card__price">{{ listing.price_amount }}<span class="trade-card__unit">/{{ listing.unit if listing.unit != 'kg' else 'kg' }}</span></p>
+        <p class="trade-card__lot-total">Lot total {{ listing.total_lot_display }}</p>
       </div>
 
-      <div class="shop-card__meta">
+      <div class="trade-card__meta">
         <span>{{ listing.quantity_display }}</span>
-        {% if listing.expires_soon and listing.days_left is not none %}
-          <span class="shop-expiry{% if listing.expires_urgent %} shop-expiry--urgent{% endif %}">Expires in {{ listing.days_left }} day{% if listing.days_left != 1 %}s{% endif %}</span>
-        {% elif listing.listed_date_label %}
-          <span class="shop-listed">{{ listing.listed_date_label }}</span>
+        {% if listing.coa_on_file %}
+          <span class="trade-badge trade-badge--coa">COA on file</span>
+        {% endif %}
+        {% if listing.supplier_rating_avg > 0 %}
+          <span class="trade-badge trade-badge--rating">{{ listing.supplier_rating_display }}</span>
         {% endif %}
       </div>
 
-      <button
-        type="button"
-        class="shop-card__cta shop-card__cta--intro"
-        data-intro-open
-        data-listing-id="{{ listing.id }}"
-        data-ingredient="{{ listing.ingredient }}"
-        data-supplier-code="{{ listing.supplier_public_code }}"
-      >Request intro</button>
+      <div class="trade-card__actions">
+        <form method="post" action="{{ url_for('marketplace_checkout_begin') }}">
+          <input type="hidden" name="listing_id" value="{{ listing.id }}" />
+          <button type="submit" class="trade-btn trade-btn--primary trade-btn--block">Buy now</button>
+        </form>
+        <button
+          type="button"
+          class="trade-btn trade-btn--ghost trade-btn--block"
+          data-intro-open
+          data-listing-id="{{ listing.id }}"
+          data-ingredient="{{ listing.ingredient }}"
+          data-supplier-code="{{ listing.supplier_public_code }}"
+        >Request intro</button>
+      </div>
     </article>
   {% endfor %}
 </div>

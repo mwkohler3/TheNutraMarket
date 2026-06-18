@@ -18,9 +18,21 @@
     <header class="wb-header">
       <div class="wb-header__top">
         <a class="wb-logo" href="{{ url_for('marketplace') }}">{{ site_name }}</a>
+        <div class="wb-header__account">
+          {% if current_buyer_account %}
+            <a href="{{ url_for('buyer_account_orders') }}">Orders</a>
+            <a href="{{ url_for('marketplace_account_logout') }}">Sign out</a>
+          {% elif current_supplier_account %}
+            <a href="{{ url_for('supplier_account_dashboard') }}">Dashboard</a>
+            <a href="{{ url_for('marketplace_account_logout') }}">Sign out</a>
+          {% else %}
+            <a href="{{ url_for('marketplace_account_login', role='buyer') }}">Sign in</a>
+            <a href="{{ url_for('marketplace_register_buyer') }}">Register</a>
+          {% endif %}
+        </div>
       </div>
       <nav class="wb-nav" aria-label="Marketplace">
-        <a href="{{ url_for('marketplace') }}" class="{% if marketplace_nav_active == 'marketplace' and marketplace_mode != 'buy_now' %}is-active{% endif %}">Live Auction</a>
+        <a href="{{ url_for('marketplace', mode='auction') }}" class="{% if marketplace_nav_active == 'marketplace' and marketplace_mode != 'buy_now' %}is-active{% endif %}">Live Auction</a>
         <a href="{{ url_for('marketplace', mode='buy_now') }}" class="{% if marketplace_nav_active == 'marketplace' and marketplace_mode == 'buy_now' %}is-active{% endif %}">Shop now</a>
         <a href="{{ url_for('marketplace_suppliers') }}" class="{% if marketplace_nav_active == 'suppliers' %}is-active{% endif %}">List inventory</a>
         <a href="{{ url_for('marketplace_community') }}" class="{% if marketplace_nav_active == 'community' %}is-active{% endif %}">Community</a>
@@ -52,7 +64,7 @@
         </div>
         <div>
           <p class="wb-footer__heading">Buy</p>
-          <a href="{{ url_for('marketplace') }}">Live Auction</a>
+          <a href="{{ url_for('marketplace', mode='auction') }}">Live Auction</a>
           <a href="{{ url_for('marketplace', mode='buy_now') }}">Shop now</a>
           <a href="{{ url_for('marketplace_community') }}">Community</a>
         </div>

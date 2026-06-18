@@ -4337,3 +4337,142 @@ html {
   font-size: 0.78rem;
   color: #666;
 }
+
+/* —— TheNutraMarket trade design system —— */
+.nm-marketplace {
+  --trade-bg: #f4f2ed;
+  --trade-surface: #faf9f6;
+  --trade-card: #ffffff;
+  --trade-text: #2b2b28;
+  --trade-muted: #6b6b66;
+  --trade-accent: #3d6f8f;
+  --trade-accent-hover: #2f5872;
+  --trade-border: #e2dfd6;
+  --trade-shadow: 0 2px 12px rgba(43, 43, 40, 0.06);
+  --trade-radius: 10px;
+  --trade-mono-vitamins: #4a6fa5;
+  --trade-mono-minerals: #3a8f84;
+  --trade-mono-amino_acids: #7a5ba8;
+  --trade-mono-botanicals: #4d8a5c;
+  --trade-mono-protein: #b8860b;
+  --trade-mono-other: #8a8a85;
+}
+
+.wb-header__top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.wb-header__account {
+  display: flex;
+  gap: 0.75rem;
+  font-size: 0.85rem;
+}
+
+.wb-header__account a {
+  color: var(--wb-black, #1a1a1a);
+  text-decoration: none;
+  font-weight: 600;
+}
+
+.wb-header__account a:hover {
+  color: var(--wb-blue, #4b9cd3);
+}
+
+.nm-marketplace:has(.trade-catalog),
+.nm-marketplace:has(.trade-community),
+.nm-marketplace:has(.trade-page-head) {
+  background: var(--trade-bg);
+}
+
+.trade-page-head { margin-bottom: 1.5rem; }
+.trade-page-head h1 { margin: 0 0 0.35rem; font-size: 1.75rem; font-weight: 800; color: var(--trade-text); }
+.trade-page-head__lead { margin: 0; color: var(--trade-muted); line-height: 1.55; max-width: 42rem; }
+.trade-page-head--center { text-align: center; }
+.trade-catalog { display: grid; grid-template-columns: 260px 1fr; gap: 1.5rem; align-items: start; }
+.trade-main { min-width: 0; }
+.trade-sidebar__mobile { background: var(--trade-card); border: 1px solid var(--trade-border); border-radius: var(--trade-radius); box-shadow: var(--trade-shadow); padding: 0.75rem 1rem 1rem; }
+.trade-sidebar__toggle { cursor: pointer; font-weight: 700; color: var(--trade-text); list-style: none; }
+.trade-sidebar__toggle::-webkit-details-marker { display: none; }
+.trade-filter-group { margin: 0 0 1rem; padding: 0 0 1rem; border: 0; border-bottom: 1px solid var(--trade-border); }
+.trade-filter-group legend { font-size: 0.72rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: var(--trade-muted); margin-bottom: 0.5rem; }
+.trade-check { display: flex; align-items: center; gap: 0.45rem; font-size: 0.88rem; color: var(--trade-text); margin-bottom: 0.35rem; }
+.trade-filter-row { display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; }
+.trade-filter-actions { display: flex; flex-direction: column; gap: 0.5rem; }
+.trade-toolbar { display: flex; flex-wrap: wrap; gap: 0.75rem; align-items: center; justify-content: space-between; margin-bottom: 1rem; }
+.trade-search, .trade-sort { display: flex; align-items: center; gap: 0.5rem; }
+.trade-search input[type="search"], .trade-sort select, .trade-form input, .trade-form select, .trade-form textarea { padding: 0.55rem 0.65rem; border: 1px solid var(--trade-border); border-radius: 8px; font-size: 0.9rem; background: var(--trade-card); color: var(--trade-text); }
+.trade-results-count { margin: 0 0 1rem; font-size: 0.85rem; color: var(--trade-muted); }
+.trade-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1.25rem; }
+.trade-card { background: var(--trade-card); border: 1px solid var(--trade-border); border-radius: var(--trade-radius); box-shadow: var(--trade-shadow); padding: 1.1rem; display: flex; flex-direction: column; gap: 0.75rem; }
+.trade-card--selected { border-color: var(--trade-accent); box-shadow: 0 0 0 2px rgba(61, 111, 143, 0.15); }
+.trade-card__icon { height: 72px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 1.1rem; letter-spacing: 0.08em; color: #fff; }
+.trade-card__icon--vitamins { background: var(--trade-mono-vitamins); }
+.trade-card__icon--minerals { background: var(--trade-mono-minerals); }
+.trade-card__icon--amino_acids { background: var(--trade-mono-amino_acids); }
+.trade-card__icon--botanicals { background: var(--trade-mono-botanicals); }
+.trade-card__icon--protein { background: var(--trade-mono-protein); }
+.trade-card__icon--other { background: var(--trade-mono-other); }
+.trade-card__title { margin: 0; font-size: 1.02rem; font-weight: 700; color: var(--trade-text); line-height: 1.3; }
+.trade-card__form { margin: 0.15rem 0 0; font-size: 0.8rem; color: var(--trade-muted); }
+.trade-card__price { margin: 0; font-size: 1.35rem; font-weight: 800; color: var(--trade-text); }
+.trade-card__unit { font-size: 0.85rem; font-weight: 600; color: var(--trade-muted); }
+.trade-card__lot-total { margin: 0.2rem 0 0; font-size: 0.78rem; color: var(--trade-muted); }
+.trade-card__meta { display: flex; flex-wrap: wrap; gap: 0.35rem; font-size: 0.78rem; color: var(--trade-muted); }
+.trade-card__actions { display: flex; flex-direction: column; gap: 0.45rem; margin-top: auto; }
+.trade-badge { display: inline-block; padding: 0.15rem 0.45rem; border-radius: 999px; font-size: 0.68rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; }
+.trade-badge--coa { background: #e8f4ec; color: #2d6a3e; }
+.trade-badge--rating { background: #f3efe6; color: #6b5a2e; }
+.trade-badge--topic { background: #eef3f7; color: var(--trade-accent); }
+.trade-btn { display: inline-flex; align-items: center; justify-content: center; padding: 0.6rem 1rem; border-radius: 8px; font-size: 0.88rem; font-weight: 700; border: 1px solid transparent; cursor: pointer; text-decoration: none; font-family: inherit; }
+.trade-btn--primary { background: var(--trade-accent); color: #fff; }
+.trade-btn--primary:hover { background: var(--trade-accent-hover); }
+.trade-btn--ghost { background: transparent; border-color: var(--trade-border); color: var(--trade-text); }
+.trade-btn--block { width: 100%; }
+.trade-empty { text-align: center; padding: 3rem 1.5rem; background: var(--trade-card); border: 1px dashed var(--trade-border); border-radius: var(--trade-radius); }
+.trade-empty p { margin: 0 0 1rem; color: var(--trade-muted); }
+.trade-panel { background: var(--trade-card); border: 1px solid var(--trade-border); border-radius: var(--trade-radius); box-shadow: var(--trade-shadow); padding: 1.25rem; margin-bottom: 1.25rem; }
+.trade-panel--narrow { max-width: 28rem; }
+.trade-panel h2 { margin: 0 0 0.75rem; font-size: 1.1rem; color: var(--trade-text); }
+.trade-form { display: grid; gap: 0.75rem; }
+.trade-form label { display: grid; gap: 0.3rem; font-size: 0.85rem; font-weight: 600; color: var(--trade-text); }
+.trade-form__row { display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; }
+.trade-split { display: grid; grid-template-columns: 1fr 1fr; gap: 1.25rem; }
+.trade-muted { color: var(--trade-muted); font-size: 0.85rem; }
+.trade-community { display: grid; grid-template-columns: 220px 1fr; gap: 1.25rem; align-items: start; }
+.trade-topic-list { list-style: none; margin: 0; padding: 0; font-size: 0.88rem; color: var(--trade-muted); }
+.trade-topic-list li { padding: 0.35rem 0; }
+.trade-topic-list__count { font-weight: 700; color: var(--trade-text); }
+.trade-thread-list { display: grid; gap: 1rem; }
+.trade-thread { background: var(--trade-card); border: 1px solid var(--trade-border); border-radius: var(--trade-radius); padding: 1.25rem; box-shadow: var(--trade-shadow); }
+.trade-thread__head h3 { margin: 0.5rem 0 0.25rem; font-size: 1.05rem; color: var(--trade-text); }
+.trade-thread__body { margin: 0.75rem 0; line-height: 1.55; color: var(--trade-text); }
+.trade-replies { border-left: 3px solid var(--trade-border); margin: 0.75rem 0; padding-left: 1rem; display: grid; gap: 0.75rem; }
+.trade-reply-box summary { cursor: pointer; font-weight: 600; color: var(--trade-accent); margin-top: 0.5rem; }
+.trade-auth-grid { display: flex; justify-content: center; }
+.trade-role-tabs { display: flex; gap: 0.5rem; margin-bottom: 1rem; }
+.trade-role-tab { flex: 1; text-align: center; padding: 0.5rem; border-radius: 8px; text-decoration: none; font-weight: 700; color: var(--trade-muted); border: 1px solid var(--trade-border); }
+.trade-role-tab.is-active { background: var(--trade-accent); color: #fff; border-color: var(--trade-accent); }
+.trade-auth-switch { margin: 1rem 0 0; font-size: 0.85rem; color: var(--trade-muted); }
+.trade-table-wrap { overflow-x: auto; }
+.trade-table { width: 100%; border-collapse: collapse; font-size: 0.88rem; }
+.trade-table th, .trade-table td { padding: 0.65rem 0.75rem; border-bottom: 1px solid var(--trade-border); text-align: left; }
+.trade-table th { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--trade-muted); }
+.trade-pill { display: inline-block; padding: 0.15rem 0.5rem; border-radius: 999px; font-size: 0.72rem; font-weight: 700; text-transform: uppercase; background: #eef3f7; color: var(--trade-accent); }
+.trade-dl { display: grid; gap: 0.65rem; margin: 0 0 1rem; }
+.trade-dl div { display: flex; justify-content: space-between; gap: 1rem; border-bottom: 1px solid var(--trade-border); padding-bottom: 0.5rem; }
+.trade-dl dt { font-weight: 600; color: var(--trade-muted); }
+.trade-dl dd { margin: 0; text-align: right; color: var(--trade-text); }
+.trade-note { font-size: 0.85rem; color: var(--trade-muted); line-height: 1.5; }
+.trade-listing-row { display: flex; justify-content: space-between; align-items: center; gap: 1rem; padding: 0.75rem 0; border-bottom: 1px solid var(--trade-border); }
+.trade-listing-row h3 { margin: 0 0 0.2rem; font-size: 0.95rem; }
+@media (max-width: 1024px) {
+  .trade-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .trade-catalog, .trade-community, .trade-split { grid-template-columns: 1fr; }
+}
+@media (max-width: 640px) {
+  .trade-grid { grid-template-columns: 1fr; }
+  .trade-form__row { grid-template-columns: 1fr; }
+}

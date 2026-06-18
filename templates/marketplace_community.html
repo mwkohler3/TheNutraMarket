@@ -2,29 +2,30 @@
 {% block marketplace_title %}Community{% endblock %}
 
 {% block marketplace_body %}
-  <section class="wb-page-head">
-    <h1>Community</h1>
-    <p>Sourcing discussions between buyers and onboarded suppliers. For deals, use <a href="{{ url_for('marketplace') }}">Shop all</a>.</p>
+  <section class="trade-page-head">
+    <h1>Procurement community</h1>
+    <p class="trade-page-head__lead">Sourcing discussions between buyers and onboarded suppliers. For inventory deals, browse <a href="{{ url_for('marketplace', mode='buy_now') }}">Shop now</a>.</p>
   </section>
 
-  <div class="wb-community-layout">
-    <aside class="wb-community-sidebar">
-      <h2>Topics</h2>
-      <ul class="wb-topic-list">
-        <li><a href="#all">All threads</a></li>
-        <li><a href="#cat-sourcing">Sourcing</a></li>
-        <li><a href="#cat-quality">Quality &amp; COA</a></li>
-        <li><a href="#cat-logistics">Logistics</a></li>
-        <li><a href="#cat-packaging">Packaging</a></li>
-        <li><a href="#cat-general">General</a></li>
-      </ul>
-      <p class="wb-community-sidebar__stat">{{ forum_threads|length }} active thread{% if forum_threads|length != 1 %}s{% endif %}</p>
+  <div class="trade-community">
+    <aside class="trade-community__aside">
+      <div class="trade-panel">
+        <h2>Topics</h2>
+        <ul class="trade-topic-list">
+          <li><span class="trade-topic-list__count">{{ forum_threads|length }}</span> active threads</li>
+          <li>Sourcing</li>
+          <li>Quality &amp; COA</li>
+          <li>Logistics</li>
+          <li>Packaging</li>
+          <li>General</li>
+        </ul>
+      </div>
     </aside>
 
-    <div class="wb-community-main">
-      <section class="wb-panel">
+    <div class="trade-community__main">
+      <section class="trade-panel">
         <h2>Start a thread</h2>
-        <form method="post" action="{{ url_for('forum_new_thread') }}" class="wb-form">
+        <form method="post" action="{{ url_for('forum_new_thread') }}" class="trade-form">
           <label>Category
             <select name="category">
               <option value="Sourcing">Sourcing</option>
@@ -36,53 +37,55 @@
           </label>
           <label>Title<input type="text" name="title" maxlength="200" required placeholder="ISO creatine monohydrate — lead times?" /></label>
           <label>Message<textarea name="body" rows="4" required placeholder="Share context, MOQ, region, urgency…"></textarea></label>
-          <div class="wb-form__row">
+          <div class="trade-form__row">
             <label>Company<input type="text" name="author_company" required /></label>
             <label>Email<input type="email" name="author_email" required /></label>
           </div>
-          <button type="submit" class="wb-btn">Post thread</button>
+          <button type="submit" class="trade-btn trade-btn--primary">Post thread</button>
         </form>
       </section>
 
       {% if forum_threads %}
-        <div class="wb-thread-list">
+        <div class="trade-thread-list">
           {% for th in forum_threads %}
-            <article class="wb-thread" id="thread-{{ th.id }}">
-              <header class="wb-thread__head">
-                <span class="wb-thread__category">{{ th.category or 'General' }}</span>
+            <article class="trade-thread" id="thread-{{ th.id }}">
+              <header class="trade-thread__head">
+                <span class="trade-badge trade-badge--topic">{{ th.category or 'General' }}</span>
                 <h3>{{ th.title }}</h3>
-                <p class="wb-thread__meta">{{ th.author_company }} · {{ th.created_at[:10] }} · {{ (th.replies or [])|length }} repl{% if (th.replies or [])|length == 1 %}y{% else %}ies{% endif %}</p>
+                <p class="trade-muted">{{ th.author_company }} · {{ th.created_at[:10] }} · {{ (th.replies or [])|length }} repl{% if (th.replies or [])|length == 1 %}y{% else %}ies{% endif %}</p>
               </header>
-              <p class="wb-thread__body">{{ th.body }}</p>
+              <p class="trade-thread__body">{{ th.body }}</p>
 
               {% if th.replies %}
-                <div class="wb-replies">
+                <div class="trade-replies">
                   {% for rep in th.replies %}
-                    <div class="wb-reply">
-                      <p class="wb-reply__meta"><strong>{{ rep.author_company }}</strong> · {{ rep.created_at[:10] }}</p>
+                    <div class="trade-reply">
+                      <p class="trade-muted"><strong>{{ rep.author_company }}</strong> · {{ rep.created_at[:10] }}</p>
                       <p>{{ rep.body }}</p>
                     </div>
                   {% endfor %}
                 </div>
               {% endif %}
 
-              <details class="wb-reply-box">
+              <details class="trade-reply-box">
                 <summary>Reply to this thread</summary>
-                <form method="post" action="{{ url_for('forum_reply') }}" class="wb-form">
+                <form method="post" action="{{ url_for('forum_reply') }}" class="trade-form">
                   <input type="hidden" name="thread_id" value="{{ th.id }}" />
                   <label>Message<textarea name="body" rows="3" required></textarea></label>
-                  <div class="wb-form__row">
+                  <div class="trade-form__row">
                     <label>Company<input type="text" name="author_company" required /></label>
                     <label>Email<input type="email" name="author_email" required /></label>
                   </div>
-                  <button type="submit" class="wb-btn wb-btn--outline">Post reply</button>
+                  <button type="submit" class="trade-btn trade-btn--ghost">Post reply</button>
                 </form>
               </details>
             </article>
           {% endfor %}
         </div>
       {% else %}
-        <p class="wb-empty">No threads yet. Start the conversation above.</p>
+        <div class="trade-empty">
+          <p>No threads yet. Start the conversation above.</p>
+        </div>
       {% endif %}
     </div>
   </div>
