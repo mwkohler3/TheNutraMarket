@@ -4521,3 +4521,370 @@ html {
   .trade-grid { grid-template-columns: 1fr; }
   .trade-form__row { grid-template-columns: 1fr; }
 }
+
+/* —— List inventory / sell page (WineBid-style) —— */
+.wb-sell-hero {
+  background: linear-gradient(180deg, var(--wb-blue-pale) 0%, #f7fbfe 100%);
+  border: 1px solid var(--wb-border-light);
+  border-radius: 4px;
+  margin: 0 0 2.5rem;
+  padding: 2.25rem 1.5rem 2.5rem;
+}
+
+.wb-sell-hero__inner {
+  max-width: 44rem;
+  margin: 0 auto;
+}
+
+.wb-sell-hero h1 {
+  margin: 0 0 0.65rem;
+  font-size: clamp(1.75rem, 4vw, 2.35rem);
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  color: var(--wb-black);
+  text-align: center;
+}
+
+.wb-sell-hero__lead {
+  margin: 0 auto 0.5rem;
+  max-width: 36rem;
+  text-align: center;
+  color: var(--wb-text-muted);
+  line-height: 1.55;
+}
+
+.wb-sell-hero__hint {
+  margin: 0 auto 1.75rem;
+  text-align: center;
+  font-size: 0.82rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: var(--wb-blue-darker);
+}
+
+.wb-sell-form {
+  display: grid;
+  gap: 1.25rem;
+  background: #fff;
+  border: 1px solid #e8e8e8;
+  padding: 1.5rem;
+  box-shadow: 0 2px 16px rgba(31, 79, 115, 0.06);
+}
+
+.wb-sell-form__grid {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.wb-sell-form__grid--2 {
+  grid-template-columns: 1fr 1fr;
+}
+
+.wb-sell-form label {
+  display: grid;
+  gap: 0.3rem;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: #333;
+}
+
+.wb-sell-form input,
+.wb-sell-form select,
+.wb-sell-form textarea {
+  width: 100%;
+  padding: 0.55rem 0.65rem;
+  border: 1px solid #ccc;
+  border-radius: 2px;
+  font-size: 0.92rem;
+  font-family: inherit;
+  background: #fff;
+}
+
+.wb-sell-form__note textarea {
+  min-height: 5rem;
+  resize: vertical;
+}
+
+.wb-sell-inventory {
+  border-top: 1px solid #ececec;
+  padding-top: 1.25rem;
+}
+
+.wb-sell-inventory__head h2 {
+  margin: 0 0 0.25rem;
+  font-size: 1rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--wb-black);
+}
+
+.wb-sell-inventory__head p {
+  margin: 0 0 1rem;
+  font-size: 0.88rem;
+  color: var(--wb-text-muted);
+}
+
+.wb-sell-inventory__rows {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.wb-sell-inventory-row {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.65rem;
+  padding: 0.85rem;
+  background: #fafafa;
+  border: 1px solid #e5e5e5;
+  position: relative;
+}
+
+.wb-sell-inventory-row__remove {
+  position: absolute;
+  top: 0.35rem;
+  right: 0.35rem;
+  width: 1.75rem;
+  height: 1.75rem;
+  border: 0;
+  border-radius: 999px;
+  background: #eee;
+  color: #555;
+  font-size: 1.1rem;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.wb-sell-inventory-row__remove:hover {
+  background: #e0e0e0;
+  color: #111;
+}
+
+.wb-sell-inventory__actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-top: 0.85rem;
+  padding-top: 0.85rem;
+  border-top: 1px dashed #ddd;
+}
+
+.wb-sell-inventory__summary {
+  margin: 0;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--wb-text-muted);
+}
+
+.wb-sell-checkgroup {
+  border: 0;
+  margin: 0;
+  padding: 0;
+}
+
+.wb-sell-checkgroup legend {
+  font-size: 0.82rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--wb-black);
+  margin-bottom: 0.25rem;
+}
+
+.wb-sell-required {
+  font-weight: 600;
+  text-transform: none;
+  letter-spacing: 0;
+  color: var(--wb-text-muted);
+  font-size: 0.78rem;
+}
+
+.wb-sell-checkgroup__hint {
+  margin: 0 0 0.65rem;
+  font-size: 0.8rem;
+  color: var(--wb-text-muted);
+}
+
+.wb-sell-checkgroup__grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.35rem 1rem;
+}
+
+.wb-sell-checkgroup .wb-check {
+  font-size: 0.88rem;
+  font-weight: 500;
+}
+
+.wb-sell-form__ack {
+  padding-top: 0.25rem;
+  font-size: 0.88rem;
+  line-height: 1.45;
+}
+
+.wb-sell-form__submit {
+  width: 100%;
+  padding: 0.85rem 1.25rem;
+  font-size: 1rem;
+}
+
+.wb-sell-form__mailto {
+  margin: 0;
+  text-align: center;
+  font-size: 0.85rem;
+  color: var(--wb-text-muted);
+}
+
+.wb-sell-section {
+  margin-bottom: 2.5rem;
+}
+
+.wb-sell-section--muted {
+  background: #f8f8f8;
+  border: 1px solid #ececec;
+  border-radius: 4px;
+  padding: 2rem 1.5rem;
+}
+
+.wb-sell-section__title {
+  margin: 0 0 1.5rem;
+  text-align: center;
+  font-size: 1.15rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--wb-black);
+}
+
+.wb-sell-steps {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1.5rem;
+}
+
+.wb-sell-step {
+  text-align: center;
+  padding: 0 0.5rem;
+}
+
+.wb-sell-step__num {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.25rem;
+  height: 2.25rem;
+  margin-bottom: 0.75rem;
+  border-radius: 999px;
+  background: var(--wb-blue);
+  color: #fff;
+  font-weight: 800;
+  font-size: 1rem;
+}
+
+.wb-sell-step h3 {
+  margin: 0 0 0.5rem;
+  font-size: 1rem;
+  font-weight: 800;
+  color: var(--wb-black);
+}
+
+.wb-sell-step p {
+  margin: 0;
+  font-size: 0.9rem;
+  color: var(--wb-text-muted);
+  line-height: 1.55;
+}
+
+.wb-sell-values {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1.25rem;
+}
+
+.wb-sell-value h3 {
+  margin: 0 0 0.5rem;
+  font-size: 1rem;
+  font-weight: 800;
+  color: var(--wb-black);
+}
+
+.wb-sell-value p {
+  margin: 0;
+  font-size: 0.9rem;
+  color: var(--wb-text-muted);
+  line-height: 1.55;
+}
+
+.wb-sell-faq {
+  max-width: 44rem;
+  margin: 0 auto;
+  display: grid;
+  gap: 0.5rem;
+}
+
+.wb-sell-faq__item {
+  border: 1px solid #e5e5e5;
+  border-radius: 4px;
+  background: #fff;
+  padding: 0.85rem 1rem;
+}
+
+.wb-sell-faq__item summary {
+  cursor: pointer;
+  font-weight: 700;
+  color: var(--wb-black);
+  list-style: none;
+}
+
+.wb-sell-faq__item summary::-webkit-details-marker {
+  display: none;
+}
+
+.wb-sell-faq__item p {
+  margin: 0.75rem 0 0;
+  font-size: 0.9rem;
+  color: var(--wb-text-muted);
+  line-height: 1.55;
+}
+
+.wb-sell-foot {
+  text-align: center;
+  padding: 1rem 0 0.5rem;
+  font-size: 0.88rem;
+  color: var(--wb-text-muted);
+  border-top: 1px solid var(--wb-border-light);
+}
+
+@media (max-width: 900px) {
+  .wb-sell-form__grid--2,
+  .wb-sell-checkgroup__grid,
+  .wb-sell-steps,
+  .wb-sell-values {
+    grid-template-columns: 1fr;
+  }
+
+  .wb-sell-inventory-row {
+    grid-template-columns: 1fr 1fr;
+    padding-top: 2rem;
+  }
+}
+
+@media (max-width: 560px) {
+  .wb-sell-hero {
+    padding: 1.5rem 1rem 2rem;
+  }
+
+  .wb-sell-form {
+    padding: 1rem;
+  }
+
+  .wb-sell-inventory-row {
+    grid-template-columns: 1fr;
+  }
+}

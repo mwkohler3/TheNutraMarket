@@ -2,35 +2,191 @@
 {% block marketplace_title %}List inventory{% endblock %}
 
 {% block marketplace_body %}
-  <section class="wb-page-head">
-    <h1>List inventory</h1>
-    <p>We onboard suppliers personally. Submit your details below and someone from our team will reach out by email to discuss listing COA-backed lots on the marketplace.</p>
-    <p class="wb-muted">
-      Prefer email?
-      <a href="mailto:{{ supplier_onboarding_email }}?subject=Supplier%20inquiry">Contact {{ supplier_onboarding_email }}</a>
-    </p>
+  <section class="wb-sell-hero" id="inquiry">
+    <div class="wb-sell-hero__inner">
+      <h1>Request to list inventory</h1>
+      <p class="wb-sell-hero__lead">
+        Tell us what you want to sell. Our team reviews every submission and follows up by email before anything goes live.
+      </p>
+      <p class="wb-sell-hero__hint">COA reference required for every lot · Ingredients, flavorings, and packaging welcome</p>
+
+      <form method="post" action="{{ url_for('supplier_subscribe') }}" class="wb-sell-form" id="supplier-inquiry-form">
+        <div class="wb-sell-form__grid wb-sell-form__grid--2">
+          <label>Company name<input type="text" name="company_name" required autocomplete="organization" /></label>
+          <label>Contact name<input type="text" name="contact_name" required autocomplete="name" /></label>
+          <label>Contact email<input type="email" name="contact_email" required autocomplete="email" /></label>
+          <label>Phone<input type="tel" name="phone" autocomplete="tel" /></label>
+          <label>Country
+            <select name="country">
+              <option value="">Select country</option>
+              <option value="United States">United States</option>
+              <option value="Canada">Canada</option>
+              <option value="Mexico">Mexico</option>
+              <option value="United Kingdom">United Kingdom</option>
+              <option value="Germany">Germany</option>
+              <option value="France">France</option>
+              <option value="Netherlands">Netherlands</option>
+              <option value="Switzerland">Switzerland</option>
+              <option value="Australia">Australia</option>
+              <option value="India">India</option>
+              <option value="China">China</option>
+              <option value="Other">Other</option>
+            </select>
+          </label>
+          <label>State / region<input type="text" name="region" autocomplete="address-level1" placeholder="e.g. California" /></label>
+        </div>
+
+        <div class="wb-sell-inventory">
+          <div class="wb-sell-inventory__head">
+            <h2>Inventory list</h2>
+            <p>No spreadsheet? Enter your products below.</p>
+          </div>
+
+          <div class="wb-sell-inventory__rows" id="inventory-rows">
+            <div class="wb-sell-inventory-row" data-inventory-row>
+              <label>Product name<input type="text" name="product_name" placeholder="Creatine monohydrate" /></label>
+              <label>Category
+                <select name="product_category">
+                  <option value="Ingredient">Ingredient</option>
+                  <option value="Flavoring">Flavoring</option>
+                  <option value="Packaging">Packaging</option>
+                </select>
+              </label>
+              <label>Quantity (kg)<input type="number" step="0.01" min="0" name="product_quantity_kg" placeholder="500" /></label>
+              <label>COA reference<input type="text" name="product_coa" placeholder="File name or doc ID" /></label>
+              <label>Sale type
+                <select name="product_sale_mode">
+                  <option value="buy_now">Shop now — flat rate</option>
+                  <option value="auction">Live auction — urgent / overstock</option>
+                  <option value="either">Either / not sure</option>
+                </select>
+              </label>
+              <label>Target price / kg (optional)<input type="number" step="0.01" min="0" name="product_price_per_kg" placeholder="USD" /></label>
+              <button type="button" class="wb-sell-inventory-row__remove" data-remove-row hidden aria-label="Remove product">×</button>
+            </div>
+          </div>
+
+          <div class="wb-sell-inventory__actions">
+            <button type="button" class="wb-btn wb-btn--outline" id="add-inventory-row">Add another product</button>
+            <p class="wb-sell-inventory__summary"><span id="inventory-count">0</span> product(s) entered</p>
+          </div>
+        </div>
+
+        <fieldset class="wb-sell-checkgroup">
+          <legend>What are you listing? <span class="wb-sell-required">(select all that apply)</span></legend>
+          <p class="wb-sell-checkgroup__hint">At least one is required</p>
+          <div class="wb-sell-checkgroup__grid">
+            <label class="wb-check"><input type="checkbox" name="listing_types" value="ingredient" /> Ingredients &amp; actives</label>
+            <label class="wb-check"><input type="checkbox" name="listing_types" value="flavoring" /> Flavorings</label>
+            <label class="wb-check"><input type="checkbox" name="listing_types" value="packaging" /> Packaging</label>
+            <label class="wb-check"><input type="checkbox" name="listing_types" value="overstock" /> Overstock / clearance</label>
+            <label class="wb-check"><input type="checkbox" name="listing_types" value="near_expiry" /> Near-expiry lots</label>
+          </div>
+        </fieldset>
+
+        <fieldset class="wb-sell-checkgroup">
+          <legend>Documentation on hand <span class="wb-sell-required">(select all that apply)</span></legend>
+          <p class="wb-sell-checkgroup__hint">At least one is required · COA required before listing goes live</p>
+          <div class="wb-sell-checkgroup__grid">
+            <label class="wb-check"><input type="checkbox" name="documentation" value="coa" /> Certificate of Analysis (COA)</label>
+            <label class="wb-check"><input type="checkbox" name="documentation" value="spec_sheet" /> Specification sheet</label>
+            <label class="wb-check"><input type="checkbox" name="documentation" value="allergen" /> Allergen statement</label>
+            <label class="wb-check"><input type="checkbox" name="documentation" value="origin" /> Country-of-origin documentation</label>
+            <label class="wb-check"><input type="checkbox" name="documentation" value="other" /> Other quality docs</label>
+          </div>
+        </fieldset>
+
+        <fieldset class="wb-sell-checkgroup">
+          <legend>How do you want to sell?</legend>
+          <div class="wb-sell-checkgroup__grid">
+            <label class="wb-check"><input type="checkbox" name="sale_preferences" value="buy_now" /> Flat-rate shop listing</label>
+            <label class="wb-check"><input type="checkbox" name="sale_preferences" value="auction" /> Live auction for urgent lots</label>
+            <label class="wb-check"><input type="checkbox" name="sale_preferences" value="either" /> Not sure — advise me</label>
+          </div>
+        </fieldset>
+
+        <label class="wb-sell-form__note">Additional notes<textarea name="note" rows="3" placeholder="MOQ, certifications, regions served, urgency…"></textarea></label>
+
+        <label class="wb-check wb-sell-form__ack">
+          <input type="checkbox" name="ack_contact" value="yes" required />
+          I understand listing on {{ site_name }} requires team approval and onboarding before inventory is published.
+        </label>
+
+        <button type="submit" class="wb-btn wb-sell-form__submit">Send request</button>
+        <p class="wb-sell-form__mailto">
+          Prefer email?
+          <a href="mailto:{{ supplier_onboarding_email }}?subject=Supplier%20listing%20inquiry">Contact {{ supplier_onboarding_email }}</a>
+        </p>
+      </form>
+    </div>
   </section>
 
-  <div class="wb-split">
-    <section class="wb-panel" id="inquiry">
-      <h2>Request to list</h2>
-      <p class="wb-panel__lead">Tell us about your company. We will follow up before any inventory goes live.</p>
-      <form method="post" action="{{ url_for('supplier_subscribe') }}" class="wb-form">
-        <label>Company name<input type="text" name="company_name" required autocomplete="organization" /></label>
-        <label>Contact name<input type="text" name="contact_name" required autocomplete="name" /></label>
-        <label>Contact email<input type="email" name="contact_email" required autocomplete="email" /></label>
-        <label>Phone (optional)<input type="tel" name="phone" autocomplete="tel" /></label>
-        <label>Message (optional)<textarea name="note" rows="3" placeholder="Products you want to list, volumes, regions…"></textarea></label>
-        <label class="wb-check">
-          <input type="checkbox" name="ack_contact" value="yes" required />
-          I understand listing on {{ site_name }} requires approval and onboarding from the team.
-        </label>
-        <button type="submit" class="wb-btn">Send inquiry</button>
-      </form>
-    </section>
-  </div>
+  <section class="wb-sell-section">
+    <h2 class="wb-sell-section__title">How to list on {{ site_name }}</h2>
+    <ol class="wb-sell-steps">
+      <li class="wb-sell-step">
+        <span class="wb-sell-step__num">1</span>
+        <h3>Submit your inventory</h3>
+        <p>Fill out the request above with product details, quantities, and COA references. Our team reviews every submission.</p>
+      </li>
+      <li class="wb-sell-step">
+        <span class="wb-sell-step__num">2</span>
+        <h3>Get onboarded</h3>
+        <p>We follow up by email to confirm documentation, pricing approach, and whether your lot fits shop-now or live auction.</p>
+      </li>
+      <li class="wb-sell-step">
+        <span class="wb-sell-step__num">3</span>
+        <h3>Connect with buyers</h3>
+        <p>Approved lots go live with your supplier code masked until commitment. Buyers request intros or purchase per listing type.</p>
+      </li>
+    </ol>
+  </section>
 
-  <section class="wb-page-foot">
+  <section class="wb-sell-section wb-sell-section--muted">
+    <h2 class="wb-sell-section__title">Why suppliers list with us</h2>
+    <div class="wb-sell-values">
+      <article class="wb-sell-value">
+        <h3>Qualified buyers</h3>
+        <p>Brands, manufacturers, and distributors actively sourcing ingredients, flavorings, and packaging — with buyer alerts matched to new lots.</p>
+      </article>
+      <article class="wb-sell-value">
+        <h3>Hands-on onboarding</h3>
+        <p>You work directly with our team on valuations, documentation, and listing format before anything is published.</p>
+      </article>
+      <article class="wb-sell-value">
+        <h3>Move overstock faster</h3>
+        <p>List flat-rate shop inventory or run live auctions on urgent lots. Supplier identity stays protected until buyer commitment.</p>
+      </article>
+    </div>
+  </section>
+
+  <section class="wb-sell-section">
+    <h2 class="wb-sell-section__title">Listing requirements</h2>
+    <div class="wb-sell-faq">
+      <details class="wb-sell-faq__item" open>
+        <summary>What documentation is required?</summary>
+        <p>Every lot must include a COA reference (file name or document ID) before it can go live. Specification sheets, allergen statements, and origin documentation strengthen buyer confidence and speed approvals.</p>
+      </details>
+      <details class="wb-sell-faq__item">
+        <summary>What product categories can I list?</summary>
+        <p>Ingredients and actives, flavorings, and packaging materials. Overstock, clearance, and near-expiry lots are welcome when documentation is current.</p>
+      </details>
+      <details class="wb-sell-faq__item">
+        <summary>Shop now vs. live auction — which should I use?</summary>
+        <p><strong>Shop now</strong> is for flat-rate lots at a set price per kg. <strong>Live auction</strong> is for overstock or time-sensitive inventory where competitive bidding helps you move volume quickly.</p>
+      </details>
+      <details class="wb-sell-faq__item">
+        <summary>Can I list without team approval?</summary>
+        <p>No. All suppliers are onboarded personally. Submit the request form above and our team will reach out to complete setup before your first lot is published.</p>
+      </details>
+      <details class="wb-sell-faq__item">
+        <summary>How are commercial terms handled?</summary>
+        <p>{{ site_name }} facilitates introductions and inventory visibility only. Pricing, payment, shipping, and contracts are negotiated directly between you and the buyer.</p>
+      </details>
+    </div>
+  </section>
+
+  <section class="wb-sell-foot">
     <p>
       Already onboarded?
       <a href="{{ url_for('marketplace_account_login', role='supplier') }}">Sign in to your supplier dashboard</a>
@@ -38,4 +194,84 @@
       <a href="{{ url_for('marketplace_supplier_report') }}">Report transactions</a>
     </p>
   </section>
+
+  <template id="inventory-row-template">
+    <div class="wb-sell-inventory-row" data-inventory-row>
+      <label>Product name<input type="text" name="product_name" placeholder="Creatine monohydrate" /></label>
+      <label>Category
+        <select name="product_category">
+          <option value="Ingredient">Ingredient</option>
+          <option value="Flavoring">Flavoring</option>
+          <option value="Packaging">Packaging</option>
+        </select>
+      </label>
+      <label>Quantity (kg)<input type="number" step="0.01" min="0" name="product_quantity_kg" placeholder="500" /></label>
+      <label>COA reference<input type="text" name="product_coa" placeholder="File name or doc ID" /></label>
+      <label>Sale type
+        <select name="product_sale_mode">
+          <option value="buy_now">Shop now — flat rate</option>
+          <option value="auction">Live auction — urgent / overstock</option>
+          <option value="either">Either / not sure</option>
+        </select>
+      </label>
+      <label>Target price / kg (optional)<input type="number" step="0.01" min="0" name="product_price_per_kg" placeholder="USD" /></label>
+      <button type="button" class="wb-sell-inventory-row__remove" data-remove-row aria-label="Remove product">×</button>
+    </div>
+  </template>
+
+  <script>
+  (function () {
+    var rowsEl = document.getElementById("inventory-rows");
+    var template = document.getElementById("inventory-row-template");
+    var addBtn = document.getElementById("add-inventory-row");
+    var countEl = document.getElementById("inventory-count");
+    if (!rowsEl || !template || !addBtn) return;
+
+    function countProducts() {
+      var names = rowsEl.querySelectorAll('input[name="product_name"]');
+      var n = 0;
+      names.forEach(function (input) {
+        if (input.value.trim()) n += 1;
+      });
+      if (countEl) countEl.textContent = String(n);
+    }
+
+    function syncRemoveButtons() {
+      var rows = rowsEl.querySelectorAll("[data-inventory-row]");
+      rows.forEach(function (row, idx) {
+        var btn = row.querySelector("[data-remove-row]");
+        if (!btn) return;
+        btn.hidden = rows.length <= 1;
+      });
+    }
+
+    function bindRow(row) {
+      row.querySelectorAll("input").forEach(function (input) {
+        input.addEventListener("input", countProducts);
+      });
+      var remove = row.querySelector("[data-remove-row]");
+      if (remove) {
+        remove.addEventListener("click", function () {
+          var rows = rowsEl.querySelectorAll("[data-inventory-row]");
+          if (rows.length <= 1) return;
+          row.remove();
+          syncRemoveButtons();
+          countProducts();
+        });
+      }
+    }
+
+    addBtn.addEventListener("click", function () {
+      var clone = template.content.firstElementChild.cloneNode(true);
+      rowsEl.appendChild(clone);
+      bindRow(clone);
+      syncRemoveButtons();
+      countProducts();
+    });
+
+    rowsEl.querySelectorAll("[data-inventory-row]").forEach(bindRow);
+    syncRemoveButtons();
+    countProducts();
+  })();
+  </script>
 {% endblock %}

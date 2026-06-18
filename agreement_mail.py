@@ -200,9 +200,25 @@ def send_supplier_inquiry_notice(inquiry: dict[str, Any]) -> bool:
         f"contact_name: {inquiry.get('contact_name')}",
         f"contact_email: {inquiry.get('contact_email')}",
         f"phone: {inquiry.get('phone')}",
+        f"country: {inquiry.get('country')}",
+        f"region: {inquiry.get('region')}",
+        f"listing_types: {', '.join(inquiry.get('listing_types') or [])}",
+        f"documentation: {', '.join(inquiry.get('documentation') or [])}",
+        f"sale_preferences: {', '.join(inquiry.get('sale_preferences') or [])}",
         f"note: {inquiry.get('note')}",
         f"status: {inquiry.get('status')}",
     ]
+    inventory_lines = inquiry.get("inventory_lines") or []
+    if inventory_lines:
+        lines.extend(["", "--- Inventory lines ---"])
+        for i, row in enumerate(inventory_lines, start=1):
+            lines.append(
+                f"{i}. {row.get('ingredient')} | {row.get('category')} | "
+                f"{row.get('quantity_kg')} kg | COA: {row.get('coa_document') or '—'} | "
+                f"{row.get('sale_mode') or '—'} | ${row.get('price_per_kg') or '—'}/kg"
+            )
+    else:
+        lines.extend(["", "--- Inventory lines ---", "(none entered — see note)"])
     body = "\n".join(lines)
     log.info("NEW SUPPLIER INQUIRY\n%s", body)
 

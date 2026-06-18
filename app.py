@@ -2506,16 +2506,53 @@ def marketplace_chat():
     return jsonify({"reply": marketplace_assistant_reply(msg)})
 
 
+def _parse_supplier_inventory_lines(form) -> list[dict]:
+    names = form.getlist("product_name")
+    categories = form.getlist("product_category")
+    quantities = form.getlist("product_quantity_kg")
+    coas = form.getlist("product_coa")
+    sale_modes = form.getlist("product_sale_mode")
+    prices = form.getlist("product_price_per_kg")
+    rows: list[dict] = []
+    for i, raw_name in enumerate(names):
+        name = raw_name.strip()
+        if not name:
+            continue
+        rows.append(
+            {
+                "ingredient": name,
+                "category": (categories[i] if i < len(categories) else "").strip(),
+                "quantity_kg": (quantities[i] if i < len(quantities) else "").strip(),
+                "coa_document": (coas[i] if i < len(coas) else "").strip(),
+                "sale_mode": (sale_modes[i] if i < len(sale_modes) else "").strip(),
+                "price_per_kg": (prices[i] if i < len(prices) else "").strip(),
+            }
+        )
+    return rows
+
+
 def _handle_supplier_inquiry(source: str = "list_inventory") -> object:
     company = request.form.get("company_name", "").strip()
     email = request.form.get("contact_email", "").strip()
     contact_name = request.form.get("contact_name", "").strip()
     phone = request.form.get("phone", "").strip()
+    country = request.form.get("country", "").strip()
+    region = request.form.get("region", "").strip()
     note = request.form.get("note", "").strip()
+    listing_types = request.form.getlist("listing_types")
+    documentation = request.form.getlist("documentation")
+    sale_preferences = request.form.getlist("sale_preferences")
+    inventory_lines = _parse_supplier_inventory_lines(request.form)
     ack = request.form.get("ack_contact") == "yes"
     redirect_to = url_for("marketplace_suppliers") + "#inquiry"
     if not company or not email or not contact_name:
         flash("Company name, contact name, and email are required.", "error")
+        return redirect(redirect_to)
+    if not listing_types:
+        flash("Select at least one product category you plan to list.", "error")
+        return redirect(redirect_to)
+    if not documentation:
+        flash("Select at least one documentation type you can provide.", "error")
         return redirect(redirect_to)
     if not ack:
         flash("Please confirm you understand onboarding requires approval from our team.", "error")
@@ -2527,7 +2564,13 @@ def _handle_supplier_inquiry(source: str = "list_inventory") -> object:
         "contact_name": contact_name,
         "contact_email": email,
         "phone": phone,
+        "country": country,
+        "region": region,
         "note": note,
+        "listing_types": listing_types,
+        "documentation": documentation,
+        "sale_preferences": sale_preferences,
+        "inventory_lines": inventory_lines,
         "status": "pending",
         "source": source,
         "submitted_at": datetime.now().isoformat(timespec="seconds"),
