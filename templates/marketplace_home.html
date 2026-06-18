@@ -53,9 +53,9 @@
     {% include "marketplace/_auction_bid_modal.html" %}
 
   {% else %}
-    <section class="trade-page-head">
+    <section class="shop-page-head">
       <h1>Ingredient listings</h1>
-      <p class="trade-page-head__lead">Flat-rate inventory from verified suppliers — filter, sort, and buy directly.</p>
+      <p class="shop-page-head__lead">Flat-rate inventory from verified suppliers — filter, sort, and buy directly.</p>
     </section>
 
     <section class="wb-mode-tabs" aria-label="Browse mode">
@@ -63,12 +63,12 @@
       <a class="wb-mode-tab is-active" href="{{ url_for('marketplace', mode='buy_now') }}">Shop now</a>
     </section>
 
-    <div class="trade-catalog">
+    <div class="shop-catalog">
       {% include "marketplace/_buy_now_sidebar.html" %}
 
-      <div class="trade-main">
-        <div class="trade-toolbar">
-          <form class="trade-search" method="get" action="{{ url_for('marketplace') }}" role="search">
+      <div class="shop-main">
+        <div class="shop-toolbar">
+          <form class="shop-search" method="get" action="{{ url_for('marketplace') }}" role="search">
             <input type="hidden" name="mode" value="buy_now" />
             {% if filter_category %}<input type="hidden" name="category" value="{{ filter_category }}" />{% endif %}
             {% if filter_sort %}<input type="hidden" name="sort" value="{{ filter_sort }}" />{% endif %}
@@ -81,10 +81,10 @@
             {% if filter_coa_only %}<input type="hidden" name="coa_only" value="1" />{% endif %}
             <label class="wb-sr-only" for="shop-search">Search listings</label>
             <input id="shop-search" type="search" name="q" placeholder="Search product, supplier, COA…" value="{{ filter_q or '' }}" />
-            <button type="submit" class="trade-btn trade-btn--ghost">Search</button>
+            <button type="submit" class="shop-btn shop-btn--ghost">Search</button>
           </form>
 
-          <form class="trade-sort" method="get" action="{{ url_for('marketplace') }}" id="shop-sort-form">
+          <form class="shop-sort" method="get" action="{{ url_for('marketplace') }}" id="shop-sort-form">
             <input type="hidden" name="mode" value="buy_now" />
             {% if filter_q %}<input type="hidden" name="q" value="{{ filter_q }}" />{% endif %}
             {% if filter_category %}<input type="hidden" name="category" value="{{ filter_category }}" />{% endif %}
@@ -106,12 +106,12 @@
           </form>
         </div>
 
-        <p class="trade-results-count">{{ listings|length }} listing{% if listings|length != 1 %}s{% endif %}</p>
+        <p class="shop-results-count">{{ listings|length }} listing{% if listings|length != 1 %}s{% endif %}</p>
 
         {% if listings %}
           {% include "marketplace/_buy_now_cards.html" %}
         {% else %}
-          <div class="trade-empty">
+          <div class="shop-empty">
             <p>No listings match your filters</p>
             <a href="{{ url_for('marketplace', mode='buy_now') }}">Clear filters</a>
           </div>
