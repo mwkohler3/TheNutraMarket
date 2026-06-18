@@ -24,9 +24,12 @@ except ImportError:  # pragma: no cover
     DDGS = None
 
 try:
-    from agreement_mail import send_intro_request_notice
+    from agreement_mail import send_intro_request_notice, send_supplier_inquiry_notice
 except ImportError:  # pragma: no cover
     def send_intro_request_notice(commit: dict) -> bool:  # type: ignore[misc]
+        return False
+
+    def send_supplier_inquiry_notice(inquiry: dict) -> bool:  # type: ignore[misc]
         return False
 
 app = Flask(__name__)
@@ -50,6 +53,7 @@ MARKETPLACE_FORUM_THREADS_FILE = DATA_DIR / "marketplace_forum_threads.json"
 MARKETPLACE_SUPPLIER_RATINGS_FILE = DATA_DIR / "marketplace_supplier_ratings.json"
 MARKETPLACE_AGREEMENT_SUBMISSIONS_FILE = DATA_DIR / "marketplace_agreement_submissions.json"
 MARKETPLACE_BUYER_ACCESS_FILE = DATA_DIR / "marketplace_buyer_access_requests.json"
+MARKETPLACE_SUPPLIER_INQUIRIES_FILE = DATA_DIR / "marketplace_supplier_inquiries.json"
 MARKETPLACE_BIDS_FILE = DATA_DIR / "marketplace_bids.json"
 MARKETPLACE_ORDERS_FILE = DATA_DIR / "marketplace_orders.json"
 MARKETPLACE_BUYER_ACCOUNTS_FILE = DATA_DIR / "marketplace_buyer_accounts.json"
@@ -67,6 +71,12 @@ DEFAULT_BID_INCREMENT = 0.05
 MARKETPLACE_VIG_RATE = 0.05
 SUPPLIER_SUBSCRIPTION_MONTHLY_USD = 100.0
 SUPPLIER_LAUNCH_FREE = os.environ.get("SUPPLIER_LAUNCH_FREE", "1").lower() in ("1", "true", "yes")
+SUPPLIER_ONBOARDING_EMAIL = (
+    os.environ.get("SUPPLIER_ONBOARDING_EMAIL", "").strip()
+    or os.environ.get("SUPPLIER_INQUIRY_NOTIFY_EMAIL", "").strip()
+    or os.environ.get("AGREEMENT_NOTIFY_EMAIL", "").strip()
+    or "max@sportsnutrition.com"
+)
 MARKETPLACE_AGREEMENT_VERSION = "v2-supplier-direct-terms"
 SESSION_PENDING_COMMIT_KEY = "marketplace_pending_commit"
 SESSION_MARKETPLACE_ACCESS = "marketplace_member_access"
@@ -389,6 +399,8 @@ def ensure_data_store() -> None:
         MARKETPLACE_AGREEMENT_SUBMISSIONS_FILE.write_text("[]", encoding="utf-8")
     if not MARKETPLACE_BUYER_ACCESS_FILE.exists():
         MARKETPLACE_BUYER_ACCESS_FILE.write_text("[]", encoding="utf-8")
+    if not MARKETPLACE_SUPPLIER_INQUIRIES_FILE.exists():
+        MARKETPLACE_SUPPLIER_INQUIRIES_FILE.write_text("[]", encoding="utf-8")
     if not MARKETPLACE_BIDS_FILE.exists():
         MARKETPLACE_BIDS_FILE.write_text("[]", encoding="utf-8")
     if not MARKETPLACE_ORDERS_FILE.exists():
@@ -948,6 +960,14 @@ def save_buyer_access_requests(rows: list[dict]) -> None:
     MARKETPLACE_BUYER_ACCESS_FILE.write_text(json.dumps(rows, indent=2), encoding="utf-8")
 
 
+def load_supplier_inquiries() -> list[dict]:
+    return _safe_load_json_list(MARKETPLACE_SUPPLIER_INQUIRIES_FILE)
+
+
+def save_supplier_inquiries(rows: list[dict]) -> None:
+    MARKETPLACE_SUPPLIER_INQUIRIES_FILE.write_text(json.dumps(rows, indent=2), encoding="utf-8")
+
+
 def _find_subscription_row(subs: list[dict], company: str, email: str) -> dict | None:
     ne, nc = _norm_email(email), _norm_company(company)
     if ne:
@@ -1096,7 +1116,6 @@ def marketplace_assistant_reply(message: str) -> str:
         return "Ask about ingredients, flavorings, packaging, supplier enrollment, COA requirements, or community threads."
 
     low = raw.lower()
-    monthly = int(SUPPLIER_SUBSCRIPTION_MONTHLY_USD)
 
     if any(
         k in low
@@ -1138,16 +1157,26 @@ def marketplace_assistant_reply(message: str) -> str:
             "pay monthly",
         )
     ):
-        if STRIPE_CHECKOUT_ENABLED:
-            return (
-                f"Supplier subscription is ${monthly}/month. "
-                "Under Marketplace → Suppliers, use the subscription form—you will be redirected to secure checkout to add a card; "
-                "Stripe bills monthly after that. Then create listings with the same company and email."
-            )
         return (
-            f"Supplier subscription is ${monthly}/month (current list price). "
-            "Use the Supplier subscription form under Marketplace → Suppliers with your company and contact email, then create listings. "
-            "(Set STRIPE_SECRET_KEY and STRIPE_SUPPLIER_PRICE_ID to enable live card billing.)"
+            f"Supplier onboarding is handled by our team. Go to List inventory, submit the inquiry form, "
+            f"or email {SUPPLIER_ONBOARDING_EMAIL}. We will follow up before any listings go live."
+        )
+
+    if any(
+        k in low
+        for k in (
+            "list inventory",
+            "sell on",
+            "become a supplier",
+            "supplier enrollment",
+            "enroll as supplier",
+            "post a listing",
+            "publish a lot",
+        )
+    ):
+        return (
+            f"To list inventory, open List inventory and submit your company details—we will email you "
+            f"to complete onboarding. You can also reach us at {SUPPLIER_ONBOARDING_EMAIL}."
         )
 
     if "rating" in low or "review" in low or "stars" in low:
@@ -1220,8 +1249,8 @@ def marketplace_assistant_reply(message: str) -> str:
     )
     if pricing_hint and not tokens:
         return (
-            f"Listing prices vary by product and lot—search Live inventory or name an ingredient. "
-            f"Supplier enrollment is {'free during launch' if SUPPLIER_LAUNCH_FREE else f'${monthly}/month'}."
+            "Listing prices vary by product and lot—search Live inventory or name an ingredient. "
+            f"To sell on the marketplace, submit a supplier inquiry under List inventory or email {SUPPLIER_ONBOARDING_EMAIL}."
         )
 
     return (
@@ -2020,6 +2049,7 @@ def inject_form_choices() -> dict:
         "marketplace_vig_pct": int(MARKETPLACE_VIG_RATE * 100),
         "supplier_subscription_monthly": int(SUPPLIER_SUBSCRIPTION_MONTHLY_USD),
         "supplier_launch_free": SUPPLIER_LAUNCH_FREE,
+        "supplier_onboarding_email": SUPPLIER_ONBOARDING_EMAIL,
         "stripe_checkout_enabled": STRIPE_CHECKOUT_ENABLED,
         "stripe_buyer_checkout_enabled": STRIPE_BUYER_CHECKOUT_ENABLED,
         "stripe_publishable_key": STRIPE_PUBLISHABLE_KEY,
@@ -2476,85 +2506,47 @@ def marketplace_chat():
     return jsonify({"reply": marketplace_assistant_reply(msg)})
 
 
-@app.route("/marketplace/supplier-subscribe", methods=["POST"])
-def supplier_subscribe():
+def _handle_supplier_inquiry(source: str = "list_inventory") -> object:
     company = request.form.get("company_name", "").strip()
     email = request.form.get("contact_email", "").strip()
     contact_name = request.form.get("contact_name", "").strip()
-    ack = request.form.get("ack_amount") == "yes"
-    if not company or not email:
-        flash("Company name and contact email are required to start a supplier subscription.", "error")
-        return redirect(url_for("marketplace_suppliers"))
+    phone = request.form.get("phone", "").strip()
+    note = request.form.get("note", "").strip()
+    ack = request.form.get("ack_contact") == "yes"
+    redirect_to = url_for("marketplace_suppliers") + "#inquiry"
+    if not company or not email or not contact_name:
+        flash("Company name, contact name, and email are required.", "error")
+        return redirect(redirect_to)
     if not ack:
-        flash("Please confirm the supplier enrollment terms to continue.", "error")
-        return redirect(url_for("marketplace_suppliers"))
-    subs = load_supplier_subscriptions()
-    ne = _norm_email(email)
-    if any(
-        _norm_email(s.get("contact_email", "")) == ne
-        and (s.get("status") or "active").lower() in ("active", "trialing")
-        for s in subs
-    ):
-        flash("This email already has an active supplier subscription.", "success")
-        return redirect(url_for("marketplace_suppliers"))
+        flash("Please confirm you understand onboarding requires approval from our team.", "error")
+        return redirect(redirect_to)
 
-    if STRIPE_CHECKOUT_ENABLED and stripe is not None:
-        stripe.api_key = STRIPE_SECRET_KEY
-        base = request.host_url.rstrip("/")
-        try:
-            checkout_session = stripe.checkout.Session.create(
-                mode="subscription",
-                customer_email=email,
-                line_items=[{"price": STRIPE_SUPPLIER_PRICE_ID, "quantity": 1}],
-                success_url=base + url_for("supplier_subscribe_success") + "?session_id={CHECKOUT_SESSION_ID}",
-                cancel_url=base + url_for("marketplace_suppliers") + "?checkout=canceled",
-                metadata={
-                    "company_name": company[:500],
-                    "contact_email": email[:500],
-                    "contact_name": contact_name[:500],
-                },
-                subscription_data={
-                    "metadata": {
-                        "company_name": company[:500],
-                        "contact_email": email[:500],
-                    }
-                },
-            )
-        except Exception as exc:  # pragma: no cover - network/SDK
-            flash(f"Could not start payment checkout: {exc}", "error")
-            return redirect(url_for("marketplace_suppliers"))
-        return redirect(str(checkout_session.url), code=303)
-
-    access_code = _generate_unique_access_code()
-    subs.append(
-        {
-            "id": str(uuid.uuid4()),
-            "company_name": company,
-            "contact_name": contact_name,
-            "contact_email": email,
-            "monthly_amount_usd": 0.0 if SUPPLIER_LAUNCH_FREE else SUPPLIER_SUBSCRIPTION_MONTHLY_USD,
-            "billing_provider": "manual",
-            "status": "active",
-            "started_at": datetime.now().isoformat(timespec="seconds"),
-            "public_supplier_code": _generate_unique_supplier_public_code(),
-            "access_code": access_code,
-        }
+    inquiry = {
+        "id": str(uuid.uuid4()),
+        "company_name": company,
+        "contact_name": contact_name,
+        "contact_email": email,
+        "phone": phone,
+        "note": note,
+        "status": "pending",
+        "source": source,
+        "submitted_at": datetime.now().isoformat(timespec="seconds"),
+    }
+    rows = load_supplier_inquiries()
+    rows.append(inquiry)
+    save_supplier_inquiries(rows)
+    sent = send_supplier_inquiry_notice(inquiry)
+    flash(
+        "Thanks — we've received your inquiry. Someone from our team will reach out by email shortly."
+        + ("" if sent else " (We could not send an internal alert email; please also email us directly.)"),
+        "success",
     )
-    save_supplier_subscriptions(subs)
-    grant_marketplace_access()
-    if SUPPLIER_LAUNCH_FREE:
-        flash(
-            f"Supplier account active (free during launch). Your access code: {access_code}. "
-            f"You can now list inventory for {company}.",
-            "success",
-        )
-    else:
-        flash(
-            f"Supplier subscription active. Your access code: {access_code}. "
-            f"You can now post listings for {company}.",
-            "success",
-        )
-    return redirect(url_for("marketplace_suppliers"))
+    return redirect(redirect_to)
+
+
+@app.route("/marketplace/supplier-subscribe", methods=["POST"])
+def supplier_subscribe():
+    return _handle_supplier_inquiry(source="list_inventory")
 
 
 @app.route("/marketplace/supplier-subscribe/success")
@@ -2822,78 +2814,8 @@ def marketplace_register_buyer():
 @app.route("/marketplace/account/register/supplier", methods=["GET", "POST"])
 def marketplace_register_supplier():
     if request.method == "POST":
-        company_name = request.form.get("company_name", "").strip()
-        contact_name = request.form.get("contact_name", "").strip()
-        email = request.form.get("contact_email", "").strip()
-        phone = request.form.get("phone", "").strip()
-        password = request.form.get("password", "")
-        wants_subscription = request.form.get("wants_subscription") == "yes"
-        if not company_name or not contact_name or not email or not phone or not password:
-            flash("All supplier signup fields are required.", "error")
-            return redirect(url_for("marketplace_register_supplier"))
-        if find_supplier_account_by_email(email):
-            flash("A supplier account with that email already exists. Please sign in.", "error")
-            return redirect(url_for("marketplace_account_login", role="supplier"))
-        account = {
-            "id": str(uuid.uuid4()),
-            "company_name": company_name,
-            "contact_name": contact_name,
-            "email": email,
-            "phone": phone,
-            "password_hash": generate_password_hash(password),
-            "public_supplier_code": get_or_assign_supplier_public_code(company_name, email),
-            "wants_subscription": wants_subscription,
-            "created_at": datetime.now().isoformat(timespec="seconds"),
-        }
-        rows = load_supplier_accounts()
-        rows.append(account)
-        save_supplier_accounts(rows)
-        login_supplier(account)
-
-        if wants_subscription and STRIPE_CHECKOUT_ENABLED and stripe is not None:
-            stripe.api_key = STRIPE_SECRET_KEY
-            base = request.host_url.rstrip("/")
-            try:
-                checkout_session = stripe.checkout.Session.create(
-                    mode="subscription",
-                    customer_email=email,
-                    line_items=[{"price": STRIPE_SUPPLIER_PRICE_ID, "quantity": 1}],
-                    success_url=base + url_for("supplier_subscribe_success") + "?session_id={CHECKOUT_SESSION_ID}",
-                    cancel_url=base + url_for("supplier_account_dashboard") + "?checkout=canceled",
-                    metadata={
-                        "company_name": company_name[:500],
-                        "contact_email": email[:500],
-                        "contact_name": contact_name[:500],
-                        "supplier_account_id": account["id"],
-                    },
-                    subscription_data={
-                        "metadata": {
-                            "company_name": company_name[:500],
-                            "contact_email": email[:500],
-                        }
-                    },
-                )
-                return redirect(str(checkout_session.url), code=303)
-            except Exception as exc:  # pragma: no cover
-                flash(f"Account created, but subscription checkout failed: {exc}", "error")
-
-        if wants_subscription and not SUPPLIER_LAUNCH_FREE:
-            upsert_local_subscription_from_stripe(
-                company=company_name,
-                email=email,
-                contact_name=contact_name,
-                customer_id=None,
-                subscription_id=None,
-                stripe_status="active",
-            )
-        flash("Supplier account created.", "success")
-        return redirect(url_for("supplier_account_dashboard"))
-    return render_template(
-        "marketplace/account_register_supplier.html",
-        marketplace_nav_active="account",
-        supplier_launch_free=SUPPLIER_LAUNCH_FREE,
-        supplier_subscription_monthly=int(SUPPLIER_SUBSCRIPTION_MONTHLY_USD),
-    )
+        return _handle_supplier_inquiry(source="account_register")
+    return redirect(url_for("marketplace_suppliers") + "#inquiry")
 
 
 @app.route("/marketplace/account/buyer/orders")
@@ -2949,7 +2871,7 @@ def supplier_account_save_listing():
     company = str(account.get("company_name") or "")
     email = str(account.get("email") or "")
     if not SUPPLIER_LAUNCH_FREE and not supplier_subscription_active(company, email):
-        flash("Active supplier subscription required before publishing listings.", "error")
+        flash("Your account is not yet cleared to publish listings. Contact our team for help.", "error")
         return redirect(url_for("supplier_account_dashboard"))
 
     listing_id = request.form.get("listing_id", "").strip()
@@ -3127,52 +3049,16 @@ def add_marketplace_listing():
         category = "Ingredient"
     if not supplier_company or not supplier_contact_email or not ingredient or price_per_kg is None or quantity_kg is None or not coa_document:
         flash("Supplier company, contact email, ingredient, price, quantity, and COA reference are required for a listing.", "error")
-        return redirect(url_for("marketplace_suppliers"))
-    if not supplier_subscription_active(supplier_company, supplier_contact_email):
-        flash(
-            f"Active supplier subscription required (${int(SUPPLIER_SUBSCRIPTION_MONTHLY_USD)}/month). "
-            "Subscribe using the same company name and email as your listing, then try again.",
-            "error",
-        )
-        return redirect(url_for("marketplace_suppliers"))
-    listing = {
-        "id": str(uuid.uuid4()),
-        "category": category,
-        "supplier_company": supplier_company,
-        "supplier_contact_email": supplier_contact_email,
-        "supplier_public_code": get_or_assign_supplier_public_code(supplier_company, supplier_contact_email),
-        "ingredient": ingredient,
-        "price_per_kg": price_per_kg,
-        "quantity_kg": quantity_kg,
-        "coa_document": coa_document,
-        "expires_on": request.form.get("expires_on", "").strip(),
-        "notes": request.form.get("notes", "").strip(),
-        "created_at": datetime.now().isoformat(timespec="seconds"),
-        "sale_mode": sale_mode,
-    }
-    if sale_mode == "auction":
-        starting_bid = _num_or_none(request.form.get("starting_bid_per_kg", ""))
-        auction_days_raw = request.form.get("auction_days", "3").strip()
-        try:
-            auction_days = max(1, min(14, int(auction_days_raw)))
-        except ValueError:
-            auction_days = 3
-        listing["starting_bid_per_kg"] = starting_bid if starting_bid is not None else round(price_per_kg * 0.82, 2)
-        listing["bid_increment"] = listing_bid_increment(listing)
-        listing["auction_ends_at"] = (datetime.now() + timedelta(days=auction_days)).isoformat(timespec="seconds")
-    listings = load_marketplace_listings()
-    listings.append(listing)
-    save_marketplace_listings(listings)
-
-    matches = [m for m in build_marketplace_matches() if m.get("listing_id") == listing["id"]]
-    if matches:
-        flash(
-            f"Listing created. {len(matches)} buyer alert match(es) triggered for {ingredient}.",
-            "success",
-        )
-    else:
-        flash("Listing created. No active buyer alert matches yet.", "success")
-    return redirect(url_for("marketplace_suppliers"))
+        return redirect(url_for("marketplace_suppliers") + "#inquiry")
+    account = current_supplier_account()
+    if account:
+        flash("Use your supplier dashboard to publish listings.", "info")
+        return redirect(url_for("supplier_account_dashboard"))
+    flash(
+        "Listing inventory requires onboarding with our team. Submit an inquiry on this page or sign in if you already have an account.",
+        "error",
+    )
+    return redirect(url_for("marketplace_suppliers") + "#inquiry")
 
 
 @app.route("/marketplace/intro/request", methods=["POST"])

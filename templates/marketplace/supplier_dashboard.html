@@ -7,8 +7,8 @@
       <h1>Supplier dashboard</h1>
       <p class="trade-page-head__lead">{{ account.company_name }} · {{ account.public_supplier_code }}</p>
     </div>
-    {% if not supplier_subscription_active and not supplier_launch_free %}
-      <p class="trade-alert">Subscription inactive — activate billing to publish new lots.</p>
+    {% if not supplier_subscription_active %}
+      <p class="trade-alert">Your account is not yet cleared to publish new lots — contact us if you need help.</p>
     {% endif %}
   </section>
 

@@ -4,69 +4,38 @@
 {% block marketplace_body %}
   <section class="wb-page-head">
     <h1>List inventory</h1>
-    <p>{% if supplier_launch_free %}Free during launch.{% else %}Active enrollment required.{% endif %} Choose flat-rate shop listings or live auctions for overstock you need to move quickly.</p>
-    <p><a href="{{ url_for('marketplace_supplier_report') }}">Report monthly transactions</a> for platform-sourced buyers ({{ marketplace_vig_pct }}% fee, self-reported).</p>
+    <p>We onboard suppliers personally. Submit your details below and someone from our team will reach out by email to discuss listing COA-backed lots on the marketplace.</p>
+    <p class="wb-muted">
+      Prefer email?
+      <a href="mailto:{{ supplier_onboarding_email }}?subject=Supplier%20inquiry">Contact {{ supplier_onboarding_email }}</a>
+    </p>
   </section>
 
   <div class="wb-split">
-    <section class="wb-panel" id="subscribe">
-      <h2>Supplier enrollment</h2>
-      <p class="wb-panel__lead">Onboarded suppliers receive a marketplace access code and can publish COA-backed lots.</p>
+    <section class="wb-panel" id="inquiry">
+      <h2>Request to list</h2>
+      <p class="wb-panel__lead">Tell us about your company. We will follow up before any inventory goes live.</p>
       <form method="post" action="{{ url_for('supplier_subscribe') }}" class="wb-form">
-        <label>Company name<input type="text" name="company_name" required /></label>
-        <label>Contact email<input type="email" name="contact_email" required /></label>
-        <label>Contact name (optional)<input type="text" name="contact_name" /></label>
-        <label class="wb-check"><input type="checkbox" name="ack_amount" value="yes" required /> I agree to supplier terms and direct buyer agreements.</label>
-        <button type="submit" class="wb-btn">{% if supplier_launch_free %}Enroll free during launch{% else %}Start enrollment{% endif %}</button>
-      </form>
-    </section>
-
-    <section class="wb-panel">
-      <h2>Publish a lot</h2>
-      <p class="wb-panel__lead">Use the same company and email as your enrollment. COA reference required.</p>
-      <form method="post" action="{{ url_for('add_marketplace_listing') }}" class="wb-form" id="listing-form">
-        <label>Sale type
-          <select name="sale_mode" id="sale-mode">
-            <option value="buy_now">Shop now — flat rate</option>
-            <option value="auction">Live auction — overstock / urgent</option>
-          </select>
+        <label>Company name<input type="text" name="company_name" required autocomplete="organization" /></label>
+        <label>Contact name<input type="text" name="contact_name" required autocomplete="name" /></label>
+        <label>Contact email<input type="email" name="contact_email" required autocomplete="email" /></label>
+        <label>Phone (optional)<input type="tel" name="phone" autocomplete="tel" /></label>
+        <label>Message (optional)<textarea name="note" rows="3" placeholder="Products you want to list, volumes, regions…"></textarea></label>
+        <label class="wb-check">
+          <input type="checkbox" name="ack_contact" value="yes" required />
+          I understand listing on {{ site_name }} requires approval and onboarding from the team.
         </label>
-        <label>Category
-          <select name="category">
-            <option value="Ingredient">Ingredient</option>
-            <option value="Flavoring">Flavoring</option>
-            <option value="Packaging">Packaging</option>
-          </select>
-        </label>
-        <label>Supplier company<input type="text" name="supplier_company" required /></label>
-        <label>Contact email<input type="email" name="supplier_contact_email" required /></label>
-        <label>Product name<input type="text" name="ingredient" placeholder="Creatine monohydrate" required /></label>
-        <label id="price-label">Flat rate price<input type="number" step="0.01" min="0" name="price_per_kg" required /></label>
-        <div class="wb-form__row wb-auction-fields" id="auction-fields" hidden>
-          <label>Starting bid (optional)<input type="number" step="0.01" min="0" name="starting_bid_per_kg" placeholder="Defaults to ~82% of list" /></label>
-          <label>Auction length (days)<input type="number" step="1" min="1" max="14" name="auction_days" value="3" /></label>
-        </div>
-        <label>Quantity<input type="number" step="0.01" min="0" name="quantity_kg" required /></label>
-        <label>COA reference<input type="text" name="coa_document" required /></label>
-        <label>Expiry (optional)<input type="date" name="expires_on" /></label>
-        <label>Notes<input type="text" name="notes" placeholder="Liquidation, MOQ, region…" /></label>
-        <button type="submit" class="wb-btn">Publish listing</button>
+        <button type="submit" class="wb-btn">Send inquiry</button>
       </form>
     </section>
   </div>
 
-  <script>
-  (function () {
-    var mode = document.getElementById("sale-mode");
-    var auctionFields = document.getElementById("auction-fields");
-    var priceLabel = document.getElementById("price-label");
-    function syncMode() {
-      var isAuction = mode.value === "auction";
-      auctionFields.hidden = !isAuction;
-      priceLabel.firstChild.textContent = isAuction ? "List / reference price " : "Flat rate price ";
-    }
-    mode.addEventListener("change", syncMode);
-    syncMode();
-  })();
-  </script>
+  <section class="wb-page-foot">
+    <p>
+      Already onboarded?
+      <a href="{{ url_for('marketplace_account_login', role='supplier') }}">Sign in to your supplier dashboard</a>
+      ·
+      <a href="{{ url_for('marketplace_supplier_report') }}">Report transactions</a>
+    </p>
+  </section>
 {% endblock %}

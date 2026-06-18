@@ -175,3 +175,71 @@ def send_intro_request_notice(commit: dict[str, Any]) -> bool:
     except Exception:
         log.exception("Failed to send intro request notification email")
         return False
+
+
+def send_supplier_inquiry_notice(inquiry: dict[str, Any]) -> bool:
+    """Notify platform team when a supplier requests to list inventory."""
+    raw_to = (
+        os.environ.get("SUPPLIER_INQUIRY_NOTIFY_EMAIL", "").strip()
+        or os.environ.get("SUPPLIER_ONBOARDING_EMAIL", "").strip()
+        or os.environ.get("AGREEMENT_NOTIFY_EMAIL", "").strip()
+    )
+    if not raw_to:
+        raw_to = _DEFAULT_AGREEMENT_NOTIFY
+    cfg = _smtp_settings()
+    cfg["to"] = [x.strip() for x in raw_to.split(",") if x.strip()]
+
+    lines = [
+        "A supplier submitted a request to list inventory on the marketplace.",
+        "",
+        "--- Inquiry ---",
+        f"id: {inquiry.get('id')}",
+        f"submitted_at: {inquiry.get('submitted_at')}",
+        f"source: {inquiry.get('source')}",
+        f"company_name: {inquiry.get('company_name')}",
+        f"contact_name: {inquiry.get('contact_name')}",
+        f"contact_email: {inquiry.get('contact_email')}",
+        f"phone: {inquiry.get('phone')}",
+        f"note: {inquiry.get('note')}",
+        f"status: {inquiry.get('status')}",
+    ]
+    body = "\n".join(lines)
+    log.info("NEW SUPPLIER INQUIRY\n%s", body)
+
+    if not cfg["host"]:
+        log.info(
+            "Supplier inquiry email skipped: set SMTP_HOST to deliver to %s.",
+            ", ".join(cfg["to"]),
+        )
+        return False
+    if not cfg["from_addr"]:
+        log.warning("Supplier inquiry email skipped: set MAIL_FROM or SMTP_USER.")
+        return False
+
+    subj = f"[Marketplace] Supplier inquiry — {inquiry.get('company_name', '')}"
+    msg = EmailMessage()
+    msg["Subject"] = subj[:998]
+    msg["From"] = cfg["from_addr"]
+    msg["To"] = ", ".join(cfg["to"])
+    msg.set_content(body)
+
+    try:
+        if cfg["use_tls"]:
+            context = ssl.create_default_context()
+            with smtplib.SMTP(cfg["host"], cfg["port"], timeout=30) as smtp:
+                smtp.ehlo()
+                smtp.starttls(context=context)
+                smtp.ehlo()
+                if cfg["user"] and cfg["password"]:
+                    smtp.login(cfg["user"], cfg["password"])
+                smtp.send_message(msg)
+        else:
+            with smtplib.SMTP(cfg["host"], cfg["port"], timeout=30) as smtp:
+                if cfg["user"] and cfg["password"]:
+                    smtp.login(cfg["user"], cfg["password"])
+                smtp.send_message(msg)
+        log.info("Supplier inquiry notification email sent to %s", cfg["to"])
+        return True
+    except Exception:
+        log.exception("Failed to send supplier inquiry notification email")
+        return False

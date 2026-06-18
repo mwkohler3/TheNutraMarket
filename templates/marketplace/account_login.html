@@ -21,7 +21,7 @@
       </form>
       <p class="trade-auth-switch">
         {% if role == 'supplier' %}
-          New supplier? <a href="{{ url_for('marketplace_register_supplier') }}">Create account</a>
+          New supplier? <a href="{{ url_for('marketplace_suppliers') }}#inquiry">Request to list inventory</a>
         {% else %}
           New buyer? <a href="{{ url_for('marketplace_register_buyer') }}">Create account</a>
         {% endif %}
