@@ -1,0 +1,27 @@
+{% extends "marketplace_layout.html" %}
+{% block marketplace_title %}Supplier registration{% endblock %}
+
+{% block marketplace_body %}
+  <section class="trade-page-head">
+    <h1>Create supplier account</h1>
+    <p class="trade-page-head__lead">Publish COA-backed lots and manage inventory.</p>
+  </section>
+
+  <section class="trade-panel trade-panel--narrow">
+    <form method="post" action="{{ url_for('marketplace_register_supplier') }}" class="trade-form">
+      <label>Company name<input type="text" name="company_name" required /></label>
+      <label>Contact name<input type="text" name="contact_name" required /></label>
+      <label>Email<input type="email" name="contact_email" required /></label>
+      <label>Phone<input type="tel" name="phone" required /></label>
+      <label>Password<input type="password" name="password" required minlength="8" autocomplete="new-password" /></label>
+      {% if not supplier_launch_free %}
+        <label class="trade-check">
+          <input type="checkbox" name="wants_subscription" value="yes" />
+          Start paid supplier subscription (${{ supplier_subscription_monthly }}/month) after signup
+        </label>
+      {% endif %}
+      <button type="submit" class="trade-btn trade-btn--primary">Create account</button>
+    </form>
+    <p class="trade-auth-switch">Already registered? <a href="{{ url_for('marketplace_account_login', role='supplier') }}">Sign in</a></p>
+  </section>
+{% endblock %}

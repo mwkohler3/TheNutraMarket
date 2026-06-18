@@ -1,0 +1,28 @@
+{% extends "marketplace_layout.html" %}
+{% block marketplace_title %}Order confirmed{% endblock %}
+
+{% block marketplace_body %}
+  <section class="trade-page-head trade-page-head--center">
+    <h1>Payment received</h1>
+    {% if order %}
+      <p class="trade-page-head__lead">Your order for <strong>{{ order.ingredient }}</strong> is confirmed.</p>
+    {% else %}
+      <p class="trade-page-head__lead">We're confirming your payment. Refresh in a moment or check <a href="{{ url_for('buyer_account_orders') }}">order history</a>.</p>
+    {% endif %}
+  </section>
+
+  {% if order %}
+    <section class="trade-panel trade-panel--narrow">
+      <dl class="trade-dl">
+        <div><dt>Order ID</dt><dd>{{ order.order_id[:8] }}…</dd></div>
+        <div><dt>Ingredient</dt><dd>{{ order.ingredient }}</dd></div>
+        <div><dt>Quantity</dt><dd>{{ '%.0f'|format(order.quantity) }} kg</dd></div>
+        <div><dt>Total paid</dt><dd>${{ '%.2f'|format(order.total_amount) }}</dd></div>
+        <div><dt>Status</dt><dd>{{ order.order_status }}</dd></div>
+        <div><dt>Supplier code</dt><dd>{{ order.supplier_public_code }}</dd></div>
+      </dl>
+      <p class="trade-note">TheNutraMarket will coordinate fulfillment. Supplier payout is held until {{ order.payout_release_date }}.</p>
+      <a href="{{ url_for('buyer_account_orders') }}" class="trade-btn trade-btn--primary">View all orders</a>
+    </section>
+  {% endif %}
+{% endblock %}

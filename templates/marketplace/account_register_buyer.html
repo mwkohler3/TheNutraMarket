@@ -1,0 +1,21 @@
+{% extends "marketplace_layout.html" %}
+{% block marketplace_title %}Buyer registration{% endblock %}
+
+{% block marketplace_body %}
+  <section class="trade-page-head">
+    <h1>Create buyer account</h1>
+    <p class="trade-page-head__lead">Purchase ingredient lots and track order history.</p>
+  </section>
+
+  <section class="trade-panel trade-panel--narrow">
+    <form method="post" action="{{ url_for('marketplace_register_buyer') }}" class="trade-form">
+      <label>Company name<input type="text" name="company_name" required /></label>
+      <label>Contact name<input type="text" name="contact_name" required /></label>
+      <label>Email<input type="email" name="contact_email" required /></label>
+      <label>Phone<input type="tel" name="phone" required /></label>
+      <label>Password<input type="password" name="password" required minlength="8" autocomplete="new-password" /></label>
+      <button type="submit" class="trade-btn trade-btn--primary">Create account</button>
+    </form>
+    <p class="trade-auth-switch">Already registered? <a href="{{ url_for('marketplace_account_login', role='buyer') }}">Sign in</a></p>
+  </section>
+{% endblock %}

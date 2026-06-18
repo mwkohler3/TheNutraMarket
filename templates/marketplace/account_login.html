@@ -1,0 +1,31 @@
+{% extends "marketplace_layout.html" %}
+{% block marketplace_title %}Sign in{% endblock %}
+
+{% block marketplace_body %}
+  <section class="trade-page-head">
+    <h1>Sign in</h1>
+    <p class="trade-page-head__lead">Access your buyer orders or supplier listing dashboard.</p>
+  </section>
+
+  <div class="trade-auth-grid">
+    <section class="trade-panel trade-panel--narrow">
+      <div class="trade-role-tabs">
+        <a href="{{ url_for('marketplace_account_login', role='buyer') }}" class="trade-role-tab{% if role == 'buyer' %} is-active{% endif %}">Buyer</a>
+        <a href="{{ url_for('marketplace_account_login', role='supplier') }}" class="trade-role-tab{% if role == 'supplier' %} is-active{% endif %}">Supplier</a>
+      </div>
+      <form method="post" action="{{ url_for('marketplace_account_login') }}" class="trade-form">
+        <input type="hidden" name="role" value="{{ role }}" />
+        <label>Email<input type="email" name="email" required autocomplete="email" /></label>
+        <label>Password<input type="password" name="password" required autocomplete="current-password" /></label>
+        <button type="submit" class="trade-btn trade-btn--primary">Sign in</button>
+      </form>
+      <p class="trade-auth-switch">
+        {% if role == 'supplier' %}
+          New supplier? <a href="{{ url_for('marketplace_register_supplier') }}">Create account</a>
+        {% else %}
+          New buyer? <a href="{{ url_for('marketplace_register_buyer') }}">Create account</a>
+        {% endif %}
+      </p>
+    </section>
+  </div>
+{% endblock %}

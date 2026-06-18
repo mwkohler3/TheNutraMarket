@@ -16,6 +16,7 @@ from urllib.parse import urlencode
 
 from flask import Flask, flash, jsonify, redirect, render_template, request, session, url_for
 from werkzeug.middleware.proxy_fix import ProxyFix
+from werkzeug.security import check_password_hash, generate_password_hash
 
 try:
     from duckduckgo_search import DDGS
@@ -50,6 +51,9 @@ MARKETPLACE_SUPPLIER_RATINGS_FILE = DATA_DIR / "marketplace_supplier_ratings.jso
 MARKETPLACE_AGREEMENT_SUBMISSIONS_FILE = DATA_DIR / "marketplace_agreement_submissions.json"
 MARKETPLACE_BUYER_ACCESS_FILE = DATA_DIR / "marketplace_buyer_access_requests.json"
 MARKETPLACE_BIDS_FILE = DATA_DIR / "marketplace_bids.json"
+MARKETPLACE_ORDERS_FILE = DATA_DIR / "marketplace_orders.json"
+MARKETPLACE_BUYER_ACCOUNTS_FILE = DATA_DIR / "marketplace_buyer_accounts.json"
+MARKETPLACE_SUPPLIER_ACCOUNTS_FILE = DATA_DIR / "marketplace_supplier_accounts.json"
 AUCTION_NOTE_KEYWORDS = (
     "48-hour",
     "liquidation",
@@ -68,6 +72,9 @@ SESSION_PENDING_COMMIT_KEY = "marketplace_pending_commit"
 SESSION_MARKETPLACE_ACCESS = "marketplace_member_access"
 SESSION_SUPPLIER_REPORT_AUTH = "marketplace_supplier_report_auth"
 SESSION_ADMIN_AUTH = "marketplace_admin_auth"
+SESSION_BUYER_ACCOUNT_ID = "marketplace_buyer_account_id"
+SESSION_SUPPLIER_ACCOUNT_ID = "marketplace_supplier_account_id"
+PAYOUT_HOLD_DAYS = 14
 MARKETPLACE_ADMIN_PASSWORD = os.environ.get("MARKETPLACE_ADMIN_PASSWORD", "").strip()
 PLATFORM_SOURCED_FOLLOWUP_DAYS = 45
 SITE_NAME = "TheNutraMarket"
@@ -195,9 +202,11 @@ _MARKETPLACE_ASSISTANT_STOPWORDS = frozenset(
 )
 
 STRIPE_SECRET_KEY = os.environ.get("STRIPE_SECRET_KEY", "").strip()
+STRIPE_PUBLISHABLE_KEY = os.environ.get("STRIPE_PUBLISHABLE_KEY", "").strip()
 STRIPE_SUPPLIER_PRICE_ID = os.environ.get("STRIPE_SUPPLIER_PRICE_ID", "").strip()
 STRIPE_WEBHOOK_SECRET = os.environ.get("STRIPE_WEBHOOK_SECRET", "").strip()
 STRIPE_CHECKOUT_ENABLED = bool(stripe and STRIPE_SECRET_KEY and STRIPE_SUPPLIER_PRICE_ID)
+STRIPE_BUYER_CHECKOUT_ENABLED = bool(stripe and STRIPE_SECRET_KEY)
 WEDGE_PRODUCT = SITE_NAME
 WEDGE_PHASE_COPY = SITE_TAGLINE
 DEFAULT_VALUE_PITCH = (
@@ -382,6 +391,12 @@ def ensure_data_store() -> None:
         MARKETPLACE_BUYER_ACCESS_FILE.write_text("[]", encoding="utf-8")
     if not MARKETPLACE_BIDS_FILE.exists():
         MARKETPLACE_BIDS_FILE.write_text("[]", encoding="utf-8")
+    if not MARKETPLACE_ORDERS_FILE.exists():
+        MARKETPLACE_ORDERS_FILE.write_text("[]", encoding="utf-8")
+    if not MARKETPLACE_BUYER_ACCOUNTS_FILE.exists():
+        MARKETPLACE_BUYER_ACCOUNTS_FILE.write_text("[]", encoding="utf-8")
+    if not MARKETPLACE_SUPPLIER_ACCOUNTS_FILE.exists():
+        MARKETPLACE_SUPPLIER_ACCOUNTS_FILE.write_text("[]", encoding="utf-8")
 
 
 def _safe_load_json_list(path: Path) -> list[dict]:
@@ -543,6 +558,206 @@ def admin_authenticated() -> bool:
 def supplier_report_authenticated() -> dict | None:
     row = session.get(SESSION_SUPPLIER_REPORT_AUTH)
     return row if isinstance(row, dict) else None
+
+
+def load_buyer_accounts() -> list[dict]:
+    return _safe_load_json_list(MARKETPLACE_BUYER_ACCOUNTS_FILE)
+
+
+def save_buyer_accounts(rows: list[dict]) -> None:
+    MARKETPLACE_BUYER_ACCOUNTS_FILE.write_text(json.dumps(rows, indent=2), encoding="utf-8")
+
+
+def load_supplier_accounts() -> list[dict]:
+    return _safe_load_json_list(MARKETPLACE_SUPPLIER_ACCOUNTS_FILE)
+
+
+def save_supplier_accounts(rows: list[dict]) -> None:
+    MARKETPLACE_SUPPLIER_ACCOUNTS_FILE.write_text(json.dumps(rows, indent=2), encoding="utf-8")
+
+
+def load_marketplace_orders() -> list[dict]:
+    return _safe_load_json_list(MARKETPLACE_ORDERS_FILE)
+
+
+def save_marketplace_orders(rows: list[dict]) -> None:
+    MARKETPLACE_ORDERS_FILE.write_text(json.dumps(rows, indent=2), encoding="utf-8")
+
+
+def find_buyer_account_by_id(account_id: str) -> dict | None:
+    aid = str(account_id or "").strip()
+    if not aid:
+        return None
+    return next((a for a in load_buyer_accounts() if str(a.get("id")) == aid), None)
+
+
+def find_supplier_account_by_id(account_id: str) -> dict | None:
+    aid = str(account_id or "").strip()
+    if not aid:
+        return None
+    return next((a for a in load_supplier_accounts() if str(a.get("id")) == aid), None)
+
+
+def find_buyer_account_by_email(email: str) -> dict | None:
+    ne = _norm_email(email)
+    if not ne:
+        return None
+    return next((a for a in load_buyer_accounts() if _norm_email(a.get("email", "")) == ne), None)
+
+
+def find_supplier_account_by_email(email: str) -> dict | None:
+    ne = _norm_email(email)
+    if not ne:
+        return None
+    return next((a for a in load_supplier_accounts() if _norm_email(a.get("email", "")) == ne), None)
+
+
+def current_buyer_account() -> dict | None:
+    return find_buyer_account_by_id(str(session.get(SESSION_BUYER_ACCOUNT_ID) or ""))
+
+
+def current_supplier_account() -> dict | None:
+    return find_supplier_account_by_id(str(session.get(SESSION_SUPPLIER_ACCOUNT_ID) or ""))
+
+
+def login_buyer(account: dict) -> None:
+    session.pop(SESSION_SUPPLIER_ACCOUNT_ID, None)
+    session[SESSION_BUYER_ACCOUNT_ID] = account["id"]
+
+
+def login_supplier(account: dict) -> None:
+    session.pop(SESSION_BUYER_ACCOUNT_ID, None)
+    session[SESSION_SUPPLIER_ACCOUNT_ID] = account["id"]
+
+
+def logout_marketplace_accounts() -> None:
+    session.pop(SESSION_BUYER_ACCOUNT_ID, None)
+    session.pop(SESSION_SUPPLIER_ACCOUNT_ID, None)
+
+
+def buyer_login_required():
+    account = current_buyer_account()
+    if account:
+        return account
+    flash("Please sign in as a buyer to continue.", "error")
+    return None
+
+
+def supplier_login_required():
+    account = current_supplier_account()
+    if account:
+        return account
+    flash("Please sign in as a supplier to continue.", "error")
+    return None
+
+
+def listing_total_amount(listing: dict) -> float:
+    unit_price = float(listing.get("price_per_kg") or 0)
+    quantity = float(listing.get("quantity_kg") or 0)
+    return round(unit_price * quantity, 2)
+
+
+def payout_release_date_from(created_at: str) -> str:
+    try:
+        dt = datetime.fromisoformat(str(created_at).replace("Z", "+00:00")[:19])
+    except ValueError:
+        dt = datetime.now()
+    return (dt + timedelta(days=PAYOUT_HOLD_DAYS)).date().isoformat()
+
+
+def create_order_from_checkout_session(session_obj: dict) -> dict | None:
+    if str(session_obj.get("payment_status") or "") != "paid":
+        return None
+    session_id = str(session_obj.get("id") or "")
+    if not session_id:
+        return None
+    orders = load_marketplace_orders()
+    existing = next((o for o in orders if o.get("stripe_session_id") == session_id), None)
+    if existing:
+        return existing
+
+    metadata = session_obj.get("metadata") or {}
+    listing_id = str(metadata.get("listing_id") or "")
+    buyer_account_id = str(metadata.get("buyer_account_id") or "")
+    listings = load_marketplace_listings()
+    listing = next((x for x in listings if str(x.get("id")) == listing_id), None)
+    if not listing:
+        return None
+
+    quantity = float(metadata.get("quantity") or listing.get("quantity_kg") or 0)
+    unit_price = float(metadata.get("unit_price") or listing.get("price_per_kg") or 0)
+    total_amount = float(metadata.get("total_amount") or listing_total_amount(listing))
+    buyer = find_buyer_account_by_id(buyer_account_id)
+    buyer_email = str(
+        metadata.get("buyer_email")
+        or (buyer or {}).get("email")
+        or session_obj.get("customer_email")
+        or ""
+    )
+    created_at = datetime.now().isoformat(timespec="seconds")
+    order = {
+        "order_id": str(uuid.uuid4()),
+        "stripe_session_id": session_id,
+        "listing_id": listing_id,
+        "ingredient": str(listing.get("ingredient") or ""),
+        "quantity": quantity,
+        "unit_price": unit_price,
+        "total_amount": total_amount,
+        "buyer_account_id": buyer_account_id,
+        "buyer_email": buyer_email,
+        "supplier_public_code": str(listing.get("supplier_public_code") or ""),
+        "order_status": "paid",
+        "payout_status": "pending",
+        "payout_release_date": payout_release_date_from(created_at),
+        "created_at": created_at,
+    }
+    orders.append(order)
+    save_marketplace_orders(orders)
+    return order
+
+
+def build_listing_row_from_form(form, supplier_company: str, supplier_contact_email: str, existing: dict | None = None) -> dict:
+    ingredient = form.get("ingredient", "").strip()
+    price_per_kg = _num_or_none(form.get("price_per_kg", ""))
+    quantity_kg = _num_or_none(form.get("quantity_kg", ""))
+    coa_document = form.get("coa_document", "").strip()
+    category = form.get("category", "Ingredient").strip() or "Ingredient"
+    sale_mode = form.get("sale_mode", "buy_now").strip().lower()
+    if sale_mode not in ("buy_now", "auction"):
+        sale_mode = "buy_now"
+    if category not in ("Ingredient", "Flavoring", "Packaging"):
+        category = "Ingredient"
+    listing = dict(existing) if existing else {}
+    listing.update(
+        {
+            "category": category,
+            "supplier_company": supplier_company,
+            "supplier_contact_email": supplier_contact_email,
+            "supplier_public_code": get_or_assign_supplier_public_code(supplier_company, supplier_contact_email),
+            "ingredient": ingredient,
+            "unit": str(listing.get("unit") or "kg"),
+            "price_per_kg": price_per_kg,
+            "quantity_kg": quantity_kg,
+            "coa_document": coa_document,
+            "expires_on": form.get("expires_on", "").strip(),
+            "notes": form.get("notes", "").strip(),
+            "sale_mode": sale_mode,
+        }
+    )
+    if not existing:
+        listing["id"] = str(uuid.uuid4())
+        listing["created_at"] = datetime.now().isoformat(timespec="seconds")
+    if sale_mode == "auction":
+        starting_bid = _num_or_none(form.get("starting_bid_per_kg", ""))
+        auction_days_raw = form.get("auction_days", "3").strip()
+        try:
+            auction_days = max(1, min(14, int(auction_days_raw)))
+        except ValueError:
+            auction_days = 3
+        listing["starting_bid_per_kg"] = starting_bid if starting_bid is not None else round(float(price_per_kg or 0) * 0.82, 2)
+        listing["bid_increment"] = listing_bid_increment(listing)
+        listing["auction_ends_at"] = (datetime.now() + timedelta(days=auction_days)).isoformat(timespec="seconds")
+    return listing
 
 
 def load_marketplace_bids() -> list[dict]:
@@ -1503,6 +1718,8 @@ def listings_for_marketplace_view(sale_mode: str | None = None) -> list[dict]:
             item["price_amount"] = f"${price:,.2f}"
             item["price_unit_label"] = f"per {unit if unit != 'kg' else 'kg'}"
             item["price_display"] = f"${price:,.2f}/{unit if unit != 'kg' else 'kg'}"
+            item["total_lot_amount"] = listing_total_amount(listing)
+            item["total_lot_display"] = f"${item['total_lot_amount']:,.2f}"
             item["time_label"] = item["days_left_label"]
         out.append(item)
     if sale_mode != "auction":
@@ -1804,6 +2021,10 @@ def inject_form_choices() -> dict:
         "supplier_subscription_monthly": int(SUPPLIER_SUBSCRIPTION_MONTHLY_USD),
         "supplier_launch_free": SUPPLIER_LAUNCH_FREE,
         "stripe_checkout_enabled": STRIPE_CHECKOUT_ENABLED,
+        "stripe_buyer_checkout_enabled": STRIPE_BUYER_CHECKOUT_ENABLED,
+        "stripe_publishable_key": STRIPE_PUBLISHABLE_KEY,
+        "current_buyer_account": current_buyer_account(),
+        "current_supplier_account": current_supplier_account(),
         "site_name": SITE_NAME,
         "site_tagline": SITE_TAGLINE,
         "site_legal_name": SITE_LEGAL_NAME,
@@ -1811,11 +2032,11 @@ def inject_form_choices() -> dict:
         "canonical_url": f"{SITE_URL}{request.path}" if request.path else SITE_URL,
         "marketplace_has_access": marketplace_has_access(),
         "marketplace_mode": (
-            (lambda m: m if m in ("buy_now", "auction") else "auction")(
-                request.args.get("mode", "auction").strip().lower()
+            (lambda m: m if m in ("buy_now", "auction") else "buy_now")(
+                request.args.get("mode", "buy_now").strip().lower()
             )
             if (request.path or "").startswith("/marketplace") and request.endpoint == "marketplace"
-            else "auction"
+            else "buy_now"
         ),
     }
 
@@ -1854,7 +2075,7 @@ def marketplace_listing_href(listing_id: str) -> str:
 
 def render_marketplace():
     summary = build_marketplace_summary()
-    mode = request.args.get("mode", "auction").strip().lower()
+    mode = request.args.get("mode", "buy_now").strip().lower()
     if mode not in ("buy_now", "auction"):
         mode = "auction"
     listings_for_view = listings_for_marketplace_view(sale_mode=mode)
@@ -2422,7 +2643,340 @@ def stripe_webhook():
         raw = obj.to_dict() if hasattr(obj, "to_dict") else (obj if isinstance(obj, dict) else {})
         if isinstance(raw, dict):
             apply_stripe_subscription_object(raw)
+    if et == "checkout.session.completed" and obj is not None:
+        raw = obj.to_dict() if hasattr(obj, "to_dict") else (obj if isinstance(obj, dict) else {})
+        if isinstance(raw, dict):
+            metadata = raw.get("metadata") or {}
+            if metadata.get("order_type") == "listing_purchase":
+                create_order_from_checkout_session(raw)
     return jsonify({"received": True})
+
+
+@app.route("/marketplace/checkout/begin", methods=["POST"])
+def marketplace_checkout_begin():
+    buyer = buyer_login_required()
+    if not buyer:
+        session["post_login_redirect"] = request.referrer or url_for("marketplace", mode="buy_now")
+        return redirect(url_for("marketplace_account_login", role="buyer"))
+
+    listing_id = request.form.get("listing_id", "").strip()
+    listings = load_marketplace_listings()
+    listing = next((x for x in listings if str(x.get("id")) == listing_id), None)
+    if not listing or listing_sale_mode(listing) != "buy_now":
+        flash("That listing is not available for direct purchase.", "error")
+        return redirect(url_for("marketplace", mode="buy_now"))
+
+    if not STRIPE_BUYER_CHECKOUT_ENABLED or stripe is None:
+        flash("Card checkout is not configured yet. Contact support or use Request intro.", "error")
+        return redirect(url_for("marketplace", mode="buy_now", listing=listing_id))
+
+    quantity = float(listing.get("quantity_kg") or 0)
+    unit_price = float(listing.get("price_per_kg") or 0)
+    total_amount = listing_total_amount(listing)
+    if total_amount <= 0:
+        flash("Listing price is invalid for checkout.", "error")
+        return redirect(url_for("marketplace", mode="buy_now"))
+
+    stripe.api_key = STRIPE_SECRET_KEY
+    base = request.host_url.rstrip("/")
+    unit = str(listing.get("unit") or "kg")
+    ingredient = str(listing.get("ingredient") or "Ingredient lot")
+    try:
+        checkout_session = stripe.checkout.Session.create(
+            mode="payment",
+            customer_email=str(buyer.get("email") or ""),
+            line_items=[
+                {
+                    "price_data": {
+                        "currency": "usd",
+                        "product_data": {
+                            "name": ingredient[:500],
+                            "description": (
+                                f"{quantity:,.0f} {unit} @ ${unit_price:,.2f}/{unit} — "
+                                f"supplier {listing.get('supplier_public_code', '')}"
+                            )[:500],
+                        },
+                        "unit_amount": int(round(total_amount * 100)),
+                    },
+                    "quantity": 1,
+                }
+            ],
+            metadata={
+                "order_type": "listing_purchase",
+                "listing_id": listing_id,
+                "buyer_account_id": str(buyer.get("id") or ""),
+                "buyer_email": str(buyer.get("email") or ""),
+                "quantity": str(quantity),
+                "unit_price": str(unit_price),
+                "total_amount": str(total_amount),
+            },
+            success_url=base + url_for("marketplace_checkout_success") + "?session_id={CHECKOUT_SESSION_ID}",
+            cancel_url=base + url_for("marketplace_checkout_cancel", listing_id=listing_id),
+        )
+    except Exception as exc:  # pragma: no cover
+        flash(f"Could not start checkout: {exc}", "error")
+        return redirect(url_for("marketplace", mode="buy_now", listing=listing_id))
+    return redirect(str(checkout_session.url), code=303)
+
+
+@app.route("/marketplace/checkout/success")
+def marketplace_checkout_success():
+    session_id = request.args.get("session_id", "").strip()
+    order = None
+    if session_id and STRIPE_BUYER_CHECKOUT_ENABLED and stripe is not None:
+        stripe.api_key = STRIPE_SECRET_KEY
+        try:
+            sess = stripe.checkout.Session.retrieve(session_id)
+            raw = sess.to_dict() if hasattr(sess, "to_dict") else dict(sess)
+            order = create_order_from_checkout_session(raw)
+        except Exception:
+            order = next((o for o in load_marketplace_orders() if o.get("stripe_session_id") == session_id), None)
+    if not order and session_id:
+        order = next((o for o in load_marketplace_orders() if o.get("stripe_session_id") == session_id), None)
+    return render_template(
+        "marketplace/order_confirmation.html",
+        order=order,
+        session_id=session_id,
+        marketplace_nav_active="marketplace",
+    )
+
+
+@app.route("/marketplace/checkout/cancel")
+def marketplace_checkout_cancel():
+    listing_id = request.args.get("listing_id", "").strip()
+    flash("Checkout canceled. No payment was collected.", "info")
+    if listing_id:
+        return redirect(url_for("marketplace", mode="buy_now", listing=listing_id))
+    return redirect(url_for("marketplace", mode="buy_now"))
+
+
+@app.route("/marketplace/account/login", methods=["GET", "POST"])
+def marketplace_account_login():
+    role = (request.args.get("role") or request.form.get("role") or "buyer").strip().lower()
+    if role not in ("buyer", "supplier"):
+        role = "buyer"
+    if request.method == "POST":
+        email = request.form.get("email", "").strip()
+        password = request.form.get("password", "")
+        if role == "supplier":
+            account = find_supplier_account_by_email(email)
+            if account and check_password_hash(account.get("password_hash", ""), password):
+                login_supplier(account)
+                flash("Signed in as supplier.", "success")
+                dest = session.pop("post_login_redirect", None) or url_for("supplier_account_dashboard")
+                return redirect(dest)
+        else:
+            account = find_buyer_account_by_email(email)
+            if account and check_password_hash(account.get("password_hash", ""), password):
+                login_buyer(account)
+                flash("Signed in as buyer.", "success")
+                dest = session.pop("post_login_redirect", None) or url_for("buyer_account_orders")
+                return redirect(dest)
+        flash("Invalid email or password.", "error")
+    return render_template(
+        "marketplace/account_login.html",
+        role=role,
+        marketplace_nav_active="account",
+    )
+
+
+@app.route("/marketplace/account/logout")
+def marketplace_account_logout():
+    logout_marketplace_accounts()
+    flash("Signed out.", "info")
+    return redirect(url_for("marketplace"))
+
+
+@app.route("/marketplace/account/register/buyer", methods=["GET", "POST"])
+def marketplace_register_buyer():
+    if request.method == "POST":
+        company_name = request.form.get("company_name", "").strip()
+        contact_name = request.form.get("contact_name", "").strip()
+        email = request.form.get("contact_email", "").strip()
+        phone = request.form.get("phone", "").strip()
+        password = request.form.get("password", "")
+        if not company_name or not contact_name or not email or not phone or not password:
+            flash("All buyer signup fields are required.", "error")
+            return redirect(url_for("marketplace_register_buyer"))
+        if find_buyer_account_by_email(email):
+            flash("A buyer account with that email already exists. Please sign in.", "error")
+            return redirect(url_for("marketplace_account_login", role="buyer"))
+        account = {
+            "id": str(uuid.uuid4()),
+            "company_name": company_name,
+            "contact_name": contact_name,
+            "email": email,
+            "phone": phone,
+            "password_hash": generate_password_hash(password),
+            "created_at": datetime.now().isoformat(timespec="seconds"),
+        }
+        rows = load_buyer_accounts()
+        rows.append(account)
+        save_buyer_accounts(rows)
+        login_buyer(account)
+        flash("Buyer account created.", "success")
+        return redirect(url_for("buyer_account_orders"))
+    return render_template("marketplace/account_register_buyer.html", marketplace_nav_active="account")
+
+
+@app.route("/marketplace/account/register/supplier", methods=["GET", "POST"])
+def marketplace_register_supplier():
+    if request.method == "POST":
+        company_name = request.form.get("company_name", "").strip()
+        contact_name = request.form.get("contact_name", "").strip()
+        email = request.form.get("contact_email", "").strip()
+        phone = request.form.get("phone", "").strip()
+        password = request.form.get("password", "")
+        wants_subscription = request.form.get("wants_subscription") == "yes"
+        if not company_name or not contact_name or not email or not phone or not password:
+            flash("All supplier signup fields are required.", "error")
+            return redirect(url_for("marketplace_register_supplier"))
+        if find_supplier_account_by_email(email):
+            flash("A supplier account with that email already exists. Please sign in.", "error")
+            return redirect(url_for("marketplace_account_login", role="supplier"))
+        account = {
+            "id": str(uuid.uuid4()),
+            "company_name": company_name,
+            "contact_name": contact_name,
+            "email": email,
+            "phone": phone,
+            "password_hash": generate_password_hash(password),
+            "public_supplier_code": get_or_assign_supplier_public_code(company_name, email),
+            "wants_subscription": wants_subscription,
+            "created_at": datetime.now().isoformat(timespec="seconds"),
+        }
+        rows = load_supplier_accounts()
+        rows.append(account)
+        save_supplier_accounts(rows)
+        login_supplier(account)
+
+        if wants_subscription and STRIPE_CHECKOUT_ENABLED and stripe is not None:
+            stripe.api_key = STRIPE_SECRET_KEY
+            base = request.host_url.rstrip("/")
+            try:
+                checkout_session = stripe.checkout.Session.create(
+                    mode="subscription",
+                    customer_email=email,
+                    line_items=[{"price": STRIPE_SUPPLIER_PRICE_ID, "quantity": 1}],
+                    success_url=base + url_for("supplier_subscribe_success") + "?session_id={CHECKOUT_SESSION_ID}",
+                    cancel_url=base + url_for("supplier_account_dashboard") + "?checkout=canceled",
+                    metadata={
+                        "company_name": company_name[:500],
+                        "contact_email": email[:500],
+                        "contact_name": contact_name[:500],
+                        "supplier_account_id": account["id"],
+                    },
+                    subscription_data={
+                        "metadata": {
+                            "company_name": company_name[:500],
+                            "contact_email": email[:500],
+                        }
+                    },
+                )
+                return redirect(str(checkout_session.url), code=303)
+            except Exception as exc:  # pragma: no cover
+                flash(f"Account created, but subscription checkout failed: {exc}", "error")
+
+        if wants_subscription and not SUPPLIER_LAUNCH_FREE:
+            upsert_local_subscription_from_stripe(
+                company=company_name,
+                email=email,
+                contact_name=contact_name,
+                customer_id=None,
+                subscription_id=None,
+                stripe_status="active",
+            )
+        flash("Supplier account created.", "success")
+        return redirect(url_for("supplier_account_dashboard"))
+    return render_template(
+        "marketplace/account_register_supplier.html",
+        marketplace_nav_active="account",
+        supplier_launch_free=SUPPLIER_LAUNCH_FREE,
+        supplier_subscription_monthly=int(SUPPLIER_SUBSCRIPTION_MONTHLY_USD),
+    )
+
+
+@app.route("/marketplace/account/buyer/orders")
+def buyer_account_orders():
+    buyer = buyer_login_required()
+    if not buyer:
+        return redirect(url_for("marketplace_account_login", role="buyer"))
+    orders = sorted(
+        [o for o in load_marketplace_orders() if str(o.get("buyer_account_id")) == str(buyer.get("id"))],
+        key=lambda o: o.get("created_at", ""),
+        reverse=True,
+    )
+    return render_template(
+        "marketplace/buyer_orders.html",
+        buyer=buyer,
+        orders=orders,
+        marketplace_nav_active="account",
+    )
+
+
+@app.route("/marketplace/account/supplier")
+def supplier_account_dashboard():
+    account = supplier_login_required()
+    if not account:
+        return redirect(url_for("marketplace_account_login", role="supplier"))
+    company = str(account.get("company_name") or "")
+    email = str(account.get("email") or "")
+    listings = [
+        x
+        for x in load_marketplace_listings()
+        if _norm_company(x.get("supplier_company", "")) == _norm_company(company)
+        and _norm_email(x.get("supplier_contact_email", "")) == _norm_email(email)
+    ]
+    listings.sort(key=lambda x: x.get("created_at", ""), reverse=True)
+    edit_id = request.args.get("edit", "").strip()
+    edit_listing = next((x for x in listings if str(x.get("id")) == edit_id), None) if edit_id else None
+    return render_template(
+        "marketplace/supplier_dashboard.html",
+        account=account,
+        listings=listings,
+        edit_listing=edit_listing,
+        supplier_subscription_active=supplier_subscription_active(company, email),
+        supplier_launch_free=SUPPLIER_LAUNCH_FREE,
+        marketplace_nav_active="account",
+    )
+
+
+@app.route("/marketplace/account/supplier/listing/save", methods=["POST"])
+def supplier_account_save_listing():
+    account = supplier_login_required()
+    if not account:
+        return redirect(url_for("marketplace_account_login", role="supplier"))
+    company = str(account.get("company_name") or "")
+    email = str(account.get("email") or "")
+    if not SUPPLIER_LAUNCH_FREE and not supplier_subscription_active(company, email):
+        flash("Active supplier subscription required before publishing listings.", "error")
+        return redirect(url_for("supplier_account_dashboard"))
+
+    listing_id = request.form.get("listing_id", "").strip()
+    listings = load_marketplace_listings()
+    existing = next((x for x in listings if str(x.get("id")) == listing_id), None) if listing_id else None
+    if existing:
+        if (
+            _norm_company(existing.get("supplier_company", "")) != _norm_company(company)
+            or _norm_email(existing.get("supplier_contact_email", "")) != _norm_email(email)
+        ):
+            flash("You can only edit your own listings.", "error")
+            return redirect(url_for("supplier_account_dashboard"))
+
+    price_per_kg = _num_or_none(request.form.get("price_per_kg", ""))
+    quantity_kg = _num_or_none(request.form.get("quantity_kg", ""))
+    if not request.form.get("ingredient", "").strip() or price_per_kg is None or quantity_kg is None or not request.form.get("coa_document", "").strip():
+        flash("Ingredient, price, quantity, and COA reference are required.", "error")
+        return redirect(url_for("supplier_account_dashboard"))
+
+    row = build_listing_row_from_form(request.form, company, email, existing)
+    if existing:
+        listings = [row if str(x.get("id")) == listing_id else x for x in listings]
+    else:
+        listings.append(row)
+    save_marketplace_listings(listings)
+    flash("Listing saved.", "success")
+    return redirect(url_for("supplier_account_dashboard"))
 
 
 @app.route("/marketplace/supplier-rating", methods=["POST"])

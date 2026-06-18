@@ -1,0 +1,62 @@
+{% extends "marketplace_layout.html" %}
+{% block marketplace_title %}Supplier dashboard{% endblock %}
+
+{% block marketplace_body %}
+  <section class="trade-page-head">
+    <div>
+      <h1>Supplier dashboard</h1>
+      <p class="trade-page-head__lead">{{ account.company_name }} · {{ account.public_supplier_code }}</p>
+    </div>
+    {% if not supplier_subscription_active and not supplier_launch_free %}
+      <p class="trade-alert">Subscription inactive — activate billing to publish new lots.</p>
+    {% endif %}
+  </section>
+
+  <div class="trade-split">
+    <section class="trade-panel">
+      <h2>{% if edit_listing %}Edit listing{% else %}New listing{% endif %}</h2>
+      <form method="post" action="{{ url_for('supplier_account_save_listing') }}" class="trade-form">
+        {% if edit_listing %}<input type="hidden" name="listing_id" value="{{ edit_listing.id }}" />{% endif %}
+        <label>Category
+          <select name="category">
+            <option value="Ingredient" {% if edit_listing and edit_listing.category == 'Ingredient' %}selected{% endif %}>Ingredient</option>
+            <option value="Flavoring" {% if edit_listing and edit_listing.category == 'Flavoring' %}selected{% endif %}>Flavoring</option>
+            <option value="Packaging" {% if edit_listing and edit_listing.category == 'Packaging' %}selected{% endif %}>Packaging</option>
+          </select>
+        </label>
+        <label>Sale type
+          <select name="sale_mode">
+            <option value="buy_now" {% if not edit_listing or edit_listing.sale_mode != 'auction' %}selected{% endif %}>Shop now</option>
+            <option value="auction" {% if edit_listing and edit_listing.sale_mode == 'auction' %}selected{% endif %}>Live auction</option>
+          </select>
+        </label>
+        <label>Ingredient / product name<input type="text" name="ingredient" value="{{ edit_listing.ingredient if edit_listing else '' }}" required /></label>
+        <label>Price per kg<input type="number" step="0.01" min="0" name="price_per_kg" value="{{ edit_listing.price_per_kg if edit_listing else '' }}" required /></label>
+        <label>Quantity (kg)<input type="number" step="0.01" min="0" name="quantity_kg" value="{{ edit_listing.quantity_kg if edit_listing else '' }}" required /></label>
+        <label>COA reference<input type="text" name="coa_document" value="{{ edit_listing.coa_document if edit_listing else '' }}" required /></label>
+        <label>Expires on (optional)<input type="date" name="expires_on" value="{{ edit_listing.expires_on if edit_listing else '' }}" /></label>
+        <label>Notes<input type="text" name="notes" value="{{ edit_listing.notes if edit_listing else '' }}" placeholder="MOQ, region, certifications…" /></label>
+        <button type="submit" class="trade-btn trade-btn--primary">Save listing</button>
+      </form>
+    </section>
+
+    <section class="trade-panel">
+      <h2>Your listings</h2>
+      {% if listings %}
+        <div class="trade-listing-rows">
+          {% for lst in listings %}
+            <article class="trade-listing-row">
+              <div>
+                <h3>{{ lst.ingredient }}</h3>
+                <p class="trade-muted">${{ '%.2f'|format(lst.price_per_kg) }}/kg · {{ '%.0f'|format(lst.quantity_kg) }} kg · {{ lst.sale_mode }}</p>
+              </div>
+              <a href="{{ url_for('supplier_account_dashboard', edit=lst.id) }}" class="trade-btn trade-btn--ghost">Edit</a>
+            </article>
+          {% endfor %}
+        </div>
+      {% else %}
+        <p class="trade-muted">No listings yet. Create your first lot on the left.</p>
+      {% endif %}
+    </section>
+  </div>
+{% endblock %}

@@ -1,0 +1,45 @@
+{% extends "marketplace_layout.html" %}
+{% block marketplace_title %}My orders{% endblock %}
+
+{% block marketplace_body %}
+  <section class="trade-page-head">
+    <h1>Order history</h1>
+    <p class="trade-page-head__lead">{{ buyer.company_name }} · {{ buyer.email }}</p>
+  </section>
+
+  <section class="trade-panel">
+    {% if orders %}
+      <div class="trade-table-wrap">
+        <table class="trade-table">
+          <thead>
+            <tr>
+              <th>Date</th>
+              <th>Ingredient</th>
+              <th>Qty</th>
+              <th>Total</th>
+              <th>Status</th>
+              <th>Supplier code</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for o in orders %}
+              <tr>
+                <td>{{ (o.created_at or '')[:10] }}</td>
+                <td>{{ o.ingredient }}</td>
+                <td>{{ '%.0f'|format(o.quantity) }} kg</td>
+                <td>${{ '%.2f'|format(o.total_amount) }}</td>
+                <td><span class="trade-pill trade-pill--{{ o.order_status }}">{{ o.order_status }}</span></td>
+                <td>{{ o.supplier_public_code }}</td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    {% else %}
+      <div class="trade-empty">
+        <p>No orders yet.</p>
+        <a href="{{ url_for('marketplace', mode='buy_now') }}" class="trade-btn trade-btn--primary">Browse listings</a>
+      </div>
+    {% endif %}
+  </section>
+{% endblock %}
