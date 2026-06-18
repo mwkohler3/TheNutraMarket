@@ -6,9 +6,8 @@
     <p class="marketplace-kicker">Buyers</p>
     <h2>Alerts, matches, commit</h2>
     <p class="marketplace-lead">
-      Create ingredient alerts, review live matches, then start a commit. You will be sent to the full
-      <a href="{{ url_for('marketplace_terms') }}">brokered transaction agreement</a> to review terms, sign, and submit—before the supplier identity unlocks.
-      Brokerage on closed deals: <strong>{{ summary.vig_rate_pct }}%</strong>.
+      Create ingredient alerts, review live matches, then use <strong>Request intro</strong> on
+      <a href="{{ url_for('marketplace', mode='buy_now') }}">Shop now</a> to connect with a supplier.
     </p>
     {% if prefill_listing_id %}
       {% set picked = (listings | selectattr('id', 'equalto', prefill_listing_id) | list | first) %}

@@ -2477,26 +2477,7 @@ def marketplace_deals_page():
 
 @app.route("/marketplace/terms")
 def marketplace_terms():
-    ensure_all_listing_supplier_codes()
-    summary = build_marketplace_summary()
-    pending = session.get(SESSION_PENDING_COMMIT_KEY)
-    listing_preview: dict | None = None
-    if pending and pending.get("listing_id"):
-        lst = next((x for x in load_marketplace_listings() if x.get("id") == pending["listing_id"]), None)
-        if lst:
-            listing_preview = {
-                "ingredient": lst.get("ingredient"),
-                "supplier_public_code": lst.get("supplier_public_code"),
-                "price_per_kg": lst.get("price_per_kg"),
-            }
-    return render_template(
-        "marketplace_terms.html",
-        summary=summary,
-        pending=pending,
-        listing_preview=listing_preview,
-        agreement_version=MARKETPLACE_AGREEMENT_VERSION,
-        marketplace_nav_active="terms",
-    )
+    return redirect(url_for("marketplace", mode="buy_now"))
 
 
 @app.route("/marketplace/chat", methods=["POST"])
@@ -3182,7 +3163,8 @@ def commit_marketplace_begin():
         "buyer_company": buyer_company,
         "buyer_contact_email": buyer_contact_email,
     }
-    return redirect(url_for("marketplace_terms"))
+    flash("Use Request intro on the listing in Shop now to connect with the supplier.", "info")
+    return redirect(url_for("marketplace", mode="buy_now"))
 
 
 @app.route("/marketplace/commit/confirm", methods=["POST"])
@@ -3193,8 +3175,8 @@ def commit_marketplace_confirm():
         return redirect(url_for("marketplace"))
 
     if request.form.get("accept_terms") != "yes":
-        flash("You must accept the brokered transaction agreement to submit your signature.", "error")
-        return redirect(url_for("marketplace_terms"))
+        flash("You must accept the introduction terms to submit.", "error")
+        return redirect(url_for("marketplace", mode="buy_now"))
 
     effective_date = request.form.get("effective_date", "").strip()
     signer_name = request.form.get("signer_name", "").strip()
@@ -3202,7 +3184,7 @@ def commit_marketplace_confirm():
     signature = request.form.get("signature", "").strip()
     if not effective_date or not signer_name or not signer_title or not signature:
         flash("Effective date, your name, title, and electronic signature are required.", "error")
-        return redirect(url_for("marketplace_terms"))
+        return redirect(url_for("marketplace", mode="buy_now"))
 
     listing_id = str(pending["listing_id"]).strip()
     buyer_company = str(pending.get("buyer_company") or "").strip()
