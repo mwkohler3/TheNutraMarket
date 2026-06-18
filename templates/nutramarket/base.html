@@ -5,6 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <meta name="color-scheme" content="light" />
     <meta name="theme-color" content="#4B9CD3" />
+    <link rel="canonical" href="{{ canonical_url }}" />
+    <meta property="og:site_name" content="{{ site_name }}" />
+    <meta property="og:url" content="{{ canonical_url }}" />
     <title>{% block title %}{{ site_name }}{% endblock %}</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -14,26 +17,18 @@
   <body class="wb-body">
     <header class="wb-header">
       <div class="wb-header__top">
-        {% if marketplace_has_access %}
-          <a class="wb-logo" href="{{ url_for('marketplace') }}">{{ site_name }}</a>
-        {% else %}
-          <a class="wb-logo" href="{{ url_for('marketplace_hub') }}">{{ site_name }}</a>
-        {% endif %}
+        <a class="wb-logo" href="{{ url_for('marketplace') }}">{{ site_name }}</a>
       </div>
-      {% if marketplace_has_access %}
-        <nav class="wb-nav" aria-label="Marketplace">
-          <a href="{{ url_for('marketplace') }}" class="{% if marketplace_nav_active == 'marketplace' and marketplace_mode != 'buy_now' %}is-active{% endif %}">Live Auction</a>
-          <a href="{{ url_for('marketplace', mode='buy_now') }}" class="{% if marketplace_nav_active == 'marketplace' and marketplace_mode == 'buy_now' %}is-active{% endif %}">Shop now</a>
-          <a href="{{ url_for('marketplace_suppliers') }}" class="{% if marketplace_nav_active == 'suppliers' %}is-active{% endif %}">List inventory</a>
-          <a href="{{ url_for('marketplace_community') }}" class="{% if marketplace_nav_active == 'community' %}is-active{% endif %}">Community</a>
-          <a href="{{ url_for('marketplace_terms') }}" class="{% if marketplace_nav_active == 'terms' %}is-active{% endif %}">Terms</a>
-        </nav>
-        <p class="wb-banner wb-banner--deal">
-          Live Auction on overstock lots · Bid to win · Flat-rate shop also available · Direct supplier agreements
-        </p>
-      {% else %}
-        <p class="wb-banner wb-banner--muted">Members only — enter your access code or request buyer access</p>
-      {% endif %}
+      <nav class="wb-nav" aria-label="Marketplace">
+        <a href="{{ url_for('marketplace') }}" class="{% if marketplace_nav_active == 'marketplace' and marketplace_mode != 'buy_now' %}is-active{% endif %}">Live Auction</a>
+        <a href="{{ url_for('marketplace', mode='buy_now') }}" class="{% if marketplace_nav_active == 'marketplace' and marketplace_mode == 'buy_now' %}is-active{% endif %}">Shop now</a>
+        <a href="{{ url_for('marketplace_suppliers') }}" class="{% if marketplace_nav_active == 'suppliers' %}is-active{% endif %}">List inventory</a>
+        <a href="{{ url_for('marketplace_community') }}" class="{% if marketplace_nav_active == 'community' %}is-active{% endif %}">Community</a>
+        <a href="{{ url_for('marketplace_terms') }}" class="{% if marketplace_nav_active == 'terms' %}is-active{% endif %}">Terms</a>
+      </nav>
+      <p class="wb-banner wb-banner--deal">
+        Live Auction on overstock lots · Bid to win · Flat-rate shop also available · Direct supplier agreements
+      </p>
     </header>
 
     <main class="wb-main">
@@ -53,7 +48,7 @@
       <div class="wb-footer__cols">
         <div>
           <p class="wb-footer__brand">{{ site_name }}</p>
-          <p class="wb-footer__text">Private marketplace for sports nutrition ingredients, flavorings, and packaging.</p>
+          <p class="wb-footer__text">Sports nutrition ingredients, flavorings, and packaging — shop now or bid on live auctions.</p>
         </div>
         <div>
           <p class="wb-footer__heading">Buy</p>
@@ -64,16 +59,13 @@
         <div>
           <p class="wb-footer__heading">Sell</p>
           <a href="{{ url_for('marketplace_suppliers') }}">List inventory</a>
-          <a href="{{ url_for('marketplace_hub') }}">Supplier enrollment</a>
         </div>
       </div>
-      <p class="wb-footer__copy">© {{ site_name }}. All agreements are between buyers and onboarded suppliers.</p>
+      <p class="wb-footer__copy">© {{ site_legal_name }}. All agreements are between buyers and onboarded suppliers.</p>
     </footer>
 
-    {% if marketplace_has_access %}
-      {% include "marketplace/_alert_widget.html" %}
-      {% include "floating_assistant.html" %}
-      {% include "floating_assistant_script.html" %}
-    {% endif %}
+    {% include "marketplace/_alert_widget.html" %}
+    {% include "floating_assistant.html" %}
+    {% include "floating_assistant_script.html" %}
   </body>
 </html>

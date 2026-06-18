@@ -73,24 +73,10 @@ PLATFORM_SOURCED_FOLLOWUP_DAYS = 45
 SITE_NAME = "TheNutraMarket"
 SITE_TAGLINE = "Instant inventory marketplace for sports nutrition"
 SITE_LEGAL_NAME = os.environ.get("SITE_LEGAL_NAME", "TheNutraMarket.com")
+SITE_URL = os.environ.get("SITE_URL", "https://www.TheNutraMarket.com").rstrip("/")
+CANONICAL_HOST = os.environ.get("CANONICAL_HOST", "www.thenutramarket.com").strip().lower()
+CANONICAL_HOST_REDIRECT = os.environ.get("CANONICAL_HOST_REDIRECT", "1").strip().lower() in ("1", "true", "yes")
 MARKETPLACE_DEMO_ACCESS_CODE = os.environ.get("MARKETPLACE_DEMO_ACCESS_CODE", "NM-DEMO").strip().upper()
-
-_PUBLIC_MARKETPLACE_ENDPOINTS = frozenset(
-    {
-        "marketplace_hub",
-        "marketplace_enter",
-        "marketplace_buyer_access",
-        "supplier_subscribe",
-        "supplier_subscribe_success",
-        "stripe_webhook",
-        "marketplace_supplier_report",
-        "marketplace_supplier_report_submit",
-        "marketplace_supplier_report_login",
-        "marketplace_admin_login",
-        "marketplace_admin_transactions",
-        "marketplace_admin_logout",
-    }
-)
 
 # Words that must not drive listing/forum keyword search (they match almost everything).
 _MARKETPLACE_ASSISTANT_STOPWORDS = frozenset(
@@ -725,7 +711,7 @@ def get_or_assign_access_code(company: str, email: str) -> str:
 
 
 def marketplace_has_access() -> bool:
-    return bool(session.get(SESSION_MARKETPLACE_ACCESS))
+    return True
 
 
 def valid_marketplace_access_code(code: str) -> bool:
@@ -1821,6 +1807,8 @@ def inject_form_choices() -> dict:
         "site_name": SITE_NAME,
         "site_tagline": SITE_TAGLINE,
         "site_legal_name": SITE_LEGAL_NAME,
+        "site_url": SITE_URL,
+        "canonical_url": f"{SITE_URL}{request.path}" if request.path else SITE_URL,
         "marketplace_has_access": marketplace_has_access(),
         "marketplace_mode": (
             (lambda m: m if m in ("buy_now", "auction") else "auction")(
@@ -1830,6 +1818,24 @@ def inject_form_choices() -> dict:
             else "auction"
         ),
     }
+
+
+@app.before_request
+def redirect_to_canonical_host() -> None | object:
+    if not CANONICAL_HOST_REDIRECT or not CANONICAL_HOST:
+        return None
+    host = (request.host or "").split(":")[0].lower()
+    if host in ("127.0.0.1", "localhost") or host.endswith(".railway.app"):
+        return None
+    if host == CANONICAL_HOST:
+        return None
+    bare = CANONICAL_HOST.removeprefix("www.")
+    if host == bare:
+        target = f"{SITE_URL}{request.path}"
+        if request.query_string:
+            target += f"?{request.query_string.decode()}"
+        return redirect(target, code=301)
+    return None
 
 
 @app.template_global()
@@ -1846,92 +1852,7 @@ def marketplace_listing_href(listing_id: str) -> str:
     return f"{url_for('marketplace')}?{qs}" if qs else url_for("marketplace", listing=listing_id)
 
 
-@app.before_request
-def gate_marketplace_members() -> None | object:
-    path = request.path or ""
-    if not path.startswith("/marketplace"):
-        return None
-    endpoint = request.endpoint or ""
-    if endpoint in _PUBLIC_MARKETPLACE_ENDPOINTS:
-        return None
-    if endpoint == "marketplace_buy":
-        return redirect(url_for("marketplace", **request.args))
-    if marketplace_has_access():
-        return None
-    return redirect(url_for("marketplace_hub"))
-
-
-@app.route("/")
-def marketplace_hub():
-    ensure_supplier_access_codes()
-    summary = build_marketplace_summary()
-    return render_template(
-        "nutramarket/hub.html",
-        summary=summary,
-        marketplace_nav_active="hub",
-    )
-
-
-@app.route("/marketplace/hub")
-def marketplace_hub_alias():
-    return redirect(url_for("marketplace_hub"))
-
-
-@app.route("/marketplace/enter", methods=["POST"])
-def marketplace_enter():
-    code = request.form.get("access_code", "").strip()
-    if valid_marketplace_access_code(code):
-        grant_marketplace_access()
-        flash("Welcome to the marketplace.", "success")
-        return redirect(url_for("marketplace"))
-    flash("Invalid access code. Check your email or subscribe as a supplier.", "error")
-    return redirect(url_for("marketplace_hub"))
-
-
-@app.route("/marketplace/buyer-access", methods=["POST"])
-def marketplace_buyer_access():
-    company = request.form.get("company_name", "").strip()
-    email = request.form.get("contact_email", "").strip()
-    contact_name = request.form.get("contact_name", "").strip()
-    if not company or not email:
-        flash("Company name and contact email are required.", "error")
-        return redirect(url_for("marketplace_hub"))
-    rows = load_buyer_access_requests()
-    rows.append(
-        {
-            "id": str(uuid.uuid4()),
-            "company_name": company,
-            "contact_name": contact_name,
-            "contact_email": email,
-            "created_at": datetime.now().isoformat(timespec="seconds"),
-        }
-    )
-    save_buyer_access_requests(rows)
-    grant_marketplace_access()
-    flash(
-        f"Browse access granted for {company}. You can set ingredient alerts from the marketplace.",
-        "success",
-    )
-    return redirect(url_for("marketplace"))
-
-
-@app.route("/playbook")
-def sales_playbook():
-    return render_template("sales_playbook.html")
-
-
-@app.route("/sell-sheet")
-def sell_sheet():
-    return render_template("sell_sheet.html")
-
-
-@app.route("/legal-agreements")
-def legal_agreements():
-    return render_template("legal_agreements.html")
-
-
-@app.route("/marketplace")
-def marketplace():
+def render_marketplace():
     summary = build_marketplace_summary()
     mode = request.args.get("mode", "auction").strip().lower()
     if mode not in ("buy_now", "auction"):
@@ -1987,6 +1908,69 @@ def marketplace():
         ingredient_taxonomy_options=INGREDIENT_TAXONOMY_OPTIONS,
         certification_filter_options=CERTIFICATION_FILTER_OPTIONS,
     )
+
+
+@app.route("/")
+@app.route("/marketplace")
+def marketplace():
+    return render_marketplace()
+
+
+@app.route("/marketplace/hub")
+def marketplace_hub():
+    return redirect(url_for("marketplace_suppliers"))
+
+
+@app.route("/marketplace/enter", methods=["POST"])
+def marketplace_enter():
+    code = request.form.get("access_code", "").strip()
+    if valid_marketplace_access_code(code):
+        grant_marketplace_access()
+        flash("Welcome to the marketplace.", "success")
+    else:
+        flash("Invalid access code.", "error")
+    return redirect(url_for("marketplace"))
+
+
+@app.route("/marketplace/buyer-access", methods=["POST"])
+def marketplace_buyer_access():
+    company = request.form.get("company_name", "").strip()
+    email = request.form.get("contact_email", "").strip()
+    contact_name = request.form.get("contact_name", "").strip()
+    if not company or not email:
+        flash("Company name and contact email are required.", "error")
+        return redirect(url_for("marketplace"))
+    rows = load_buyer_access_requests()
+    rows.append(
+        {
+            "id": str(uuid.uuid4()),
+            "company_name": company,
+            "contact_name": contact_name,
+            "contact_email": email,
+            "created_at": datetime.now().isoformat(timespec="seconds"),
+        }
+    )
+    save_buyer_access_requests(rows)
+    flash(
+        f"Thanks, {company} — you can browse listings and set ingredient alerts anytime.",
+        "success",
+    )
+    return redirect(url_for("marketplace"))
+
+
+@app.route("/playbook")
+def sales_playbook():
+    return render_template("sales_playbook.html")
+
+
+@app.route("/sell-sheet")
+def sell_sheet():
+    return render_template("sell_sheet.html")
+
+
+@app.route("/legal-agreements")
+def legal_agreements():
+    return render_template("legal_agreements.html")
 
 
 @app.route("/marketplace/auctions")
