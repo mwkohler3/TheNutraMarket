@@ -1,78 +1,41 @@
-<div class="shop-grid">
-  {% for listing in listings %}
-    <article
-      class="shop-card{% if prefill_listing_id == listing.id %} shop-card--selected{% endif %}{% if listing.featured %} shop-card--featured{% endif %}"
-      data-taxonomy="{{ listing.ingredient_taxonomy }}"
-    >
-      {% if listing.featured %}
-        <span class="shop-card__featured-badge">Featured</span>
-      {% endif %}
-      {% include "marketplace/_shop_card_visual.html" %}
+{% macro sn_ingredient_card(listing) %}
+  <article class="sn-card{% if listing.featured %} sn-card--featured{% endif %}">
+    {% if listing.featured %}
+      <p class="sn-card__badge">Featured</p>
+    {% endif %}
+    <h3 class="sn-card__title">{{ listing.ingredient }}</h3>
+    <p class="sn-card__desc">{{ listing.description }}</p>
+    <p class="sn-card__category">{{ listing.category_label }}</p>
+    <button
+      type="button"
+      class="sn-card__inquire"
+      data-purchase-open
+      data-listing-id="{{ listing.id }}"
+      data-ingredient="{{ listing.ingredient }}"
+      data-supplier-code="{{ listing.supplier_public_code }}"
+      data-price-on-request="{{ '1' if listing.price_on_request else '0' }}"
+    >Inquire</button>
+  </article>
+{% endmacro %}
 
-      <div class="shop-card__head">
-        <h3 class="shop-card__title">{{ listing.ingredient }}</h3>
-        <p class="shop-card__form">{{ listing.form_label }}</p>
-      </div>
+{% set featured_listings = listings | selectattr('featured') | list %}
 
-      <div class="shop-card__price-row">
-        {% if listing.price_on_request %}
-          <p class="shop-card__price shop-card__price--inquire">Inquire<span> for pricing</span></p>
-          <p class="shop-card__lot-total">${{ platform_commitment_fee_usd }} platform commitment to start</p>
-        {% else %}
-          <p class="shop-card__price">{{ listing.price_amount }}<span>/{{ listing.unit if listing.unit != 'kg' else 'kg' }}</span></p>
-          <p class="shop-card__lot-total">Lot total {{ listing.total_lot_display }}</p>
-        {% endif %}
-        {% if listing.price_tier_chips %}
-          <div class="shop-card__tiers">
-            {% for chip in listing.price_tier_chips %}
-              <span class="shop-tier-chip">{{ chip }}</span>
-            {% endfor %}
-          </div>
-        {% endif %}
-      </div>
+<section class="sn-section">
+  <h2 class="sn-section__title">Featured Ingredients</h2>
+  <p class="sn-section__lead">Top picks hand-selected by our team for quality and demand.</p>
+  <div class="sn-grid">
+    {% for listing in featured_listings %}
+      {{ sn_ingredient_card(listing) }}
+    {% endfor %}
+  </div>
+</section>
 
-      <div class="shop-card__trust">
-        {% if listing.coa_on_file %}
-          <span class="shop-trust shop-trust--coa">✓ COA on file</span>
-        {% else %}
-          <span class="shop-trust shop-trust--muted">No COA listed</span>
-        {% endif %}
-        <span class="shop-trust shop-trust--rating">{{ listing.supplier_rating_display }}</span>
-        {% if listing.supplier_verified %}
-          <span class="shop-trust shop-trust--verified">Verified Supplier</span>
-        {% endif %}
-      </div>
-
-      <div class="shop-card__meta">
-        <span>{{ listing.quantity_display }}</span>
-        {% if listing.expires_soon and listing.days_left is not none %}
-          <span class="shop-expiry{% if listing.expires_urgent %} shop-expiry--urgent{% endif %}">Expires in {{ listing.days_left }} day{% if listing.days_left != 1 %}s{% endif %}</span>
-        {% elif listing.listed_date_label %}
-          <span class="shop-listed">{{ listing.listed_date_label }}</span>
-        {% endif %}
-      </div>
-
-      <div class="shop-card__actions">
-        {% if stripe_buyer_checkout_enabled %}
-          <button
-            type="button"
-            class="shop-card__cta shop-card__cta--buy"
-            data-purchase-open
-            data-listing-id="{{ listing.id }}"
-            data-ingredient="{{ listing.ingredient }}"
-            data-supplier-code="{{ listing.supplier_public_code }}"
-            data-price-on-request="{{ '1' if listing.price_on_request else '0' }}"
-          >{% if listing.price_on_request %}Inquire &amp; pay{% else %}Buy now — pay{% endif %}</button>
-        {% endif %}
-        <button
-          type="button"
-          class="shop-card__cta shop-card__cta--intro"
-          data-intro-open
-          data-listing-id="{{ listing.id }}"
-          data-ingredient="{{ listing.ingredient }}"
-          data-supplier-code="{{ listing.supplier_public_code }}"
-        >Request intro</button>
-      </div>
-    </article>
-  {% endfor %}
-</div>
+<section class="sn-section">
+  <h2 class="sn-section__title">Available Ingredients</h2>
+  <p class="sn-section__lead">Browse available ingredients from verified suppliers worldwide.</p>
+  <div class="sn-grid">
+    {% for listing in listings %}
+      {{ sn_ingredient_card(listing) }}
+    {% endfor %}
+  </div>
+</section>

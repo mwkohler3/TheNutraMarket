@@ -1790,6 +1790,12 @@ def listings_for_marketplace_view(sale_mode: str | None = None) -> list[dict]:
                 item["price_on_request"] = False
             item["time_label"] = item["days_left_label"]
         item["featured"] = bool(listing.get("featured"))
+        item["description"] = str(
+            listing.get("description") or listing.get("notes") or ""
+        ).strip()
+        item["category_label"] = str(
+            listing.get("category_label") or item["category"] or "Ingredient"
+        ).strip()
         out.append(item)
     if sale_mode != "auction":
         out.sort(key=lambda x: x.get("created_at", ""), reverse=True)
@@ -2163,7 +2169,6 @@ def render_marketplace():
     filter_coa_only = request.args.get("coa_only", "").strip().lower() in ("1", "true", "yes", "on")
 
     if mode == "buy_now":
-        listings_for_view = apply_buy_now_listing_filters(listings_for_view, request.args)
         listings_for_view = sort_buy_now_listings(listings_for_view, sort_key)
     else:
         if cat:

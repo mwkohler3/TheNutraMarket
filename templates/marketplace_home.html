@@ -53,74 +53,31 @@
     {% include "marketplace/_auction_bid_modal.html" %}
 
   {% else %}
-    <section class="shop-page-head">
-      <h1>Ingredient listings</h1>
-      <p class="shop-page-head__lead">Verified inventory from National Chemical — inquire for pricing and pay through the platform so every deal stays on {{ site_name }}.</p>
+    <section class="sn-hero">
+      <p class="sn-hero__eyebrow">Live Now</p>
+      <h1 class="sn-hero__title">The Live Marketplace for Supplement Ingredients</h1>
+      <p class="sn-hero__lead">
+        Where verified suppliers list real inventory and brands discover deals — in real time.
+        The fastest way to source premium ingredients at competitive prices.
+      </p>
+      <p class="sn-hero__meta">{{ listings|length }} active listings · Updated daily</p>
     </section>
 
     <section class="wb-mode-tabs" aria-label="Browse mode">
-      <a class="wb-mode-tab" href="{{ url_for('marketplace', mode='auction', category=filter_category or none, q=filter_q or none) }}">Live Auction</a>
+      <a class="wb-mode-tab" href="{{ url_for('marketplace', mode='auction') }}">Live Auction</a>
       <a class="wb-mode-tab is-active" href="{{ url_for('marketplace', mode='buy_now') }}">Shop now</a>
     </section>
 
-    <div class="shop-catalog">
-      {% include "marketplace/_buy_now_sidebar.html" %}
-
-      <div class="shop-main">
-        <div class="shop-toolbar">
-          <form class="shop-search" method="get" action="{{ url_for('marketplace') }}" role="search">
-            <input type="hidden" name="mode" value="buy_now" />
-            {% if filter_category %}<input type="hidden" name="category" value="{{ filter_category }}" />{% endif %}
-            {% if filter_sort %}<input type="hidden" name="sort" value="{{ filter_sort }}" />{% endif %}
-            {% for t in filter_taxonomies %}<input type="hidden" name="taxonomy" value="{{ t }}" />{% endfor %}
-            {% for c in filter_certs %}<input type="hidden" name="cert" value="{{ c }}" />{% endfor %}
-            {% if filter_price_min %}<input type="hidden" name="price_min" value="{{ filter_price_min }}" />{% endif %}
-            {% if filter_price_max %}<input type="hidden" name="price_max" value="{{ filter_price_max }}" />{% endif %}
-            {% if filter_qty_min %}<input type="hidden" name="qty_min" value="{{ filter_qty_min }}" />{% endif %}
-            {% if filter_rating and filter_rating != 'any' %}<input type="hidden" name="rating" value="{{ filter_rating }}" />{% endif %}
-            {% if filter_coa_only %}<input type="hidden" name="coa_only" value="1" />{% endif %}
-            <label class="wb-sr-only" for="shop-search">Search listings</label>
-            <input id="shop-search" type="search" name="q" placeholder="Search product, supplier, COA…" value="{{ filter_q or '' }}" />
-            <button type="submit" class="shop-btn shop-btn--ghost">Search</button>
-          </form>
-
-          <form class="shop-sort" method="get" action="{{ url_for('marketplace') }}" id="shop-sort-form">
-            <input type="hidden" name="mode" value="buy_now" />
-            {% if filter_q %}<input type="hidden" name="q" value="{{ filter_q }}" />{% endif %}
-            {% if filter_category %}<input type="hidden" name="category" value="{{ filter_category }}" />{% endif %}
-            {% for t in filter_taxonomies %}<input type="hidden" name="taxonomy" value="{{ t }}" />{% endfor %}
-            {% for c in filter_certs %}<input type="hidden" name="cert" value="{{ c }}" />{% endfor %}
-            {% if filter_price_min %}<input type="hidden" name="price_min" value="{{ filter_price_min }}" />{% endif %}
-            {% if filter_price_max %}<input type="hidden" name="price_max" value="{{ filter_price_max }}" />{% endif %}
-            {% if filter_qty_min %}<input type="hidden" name="qty_min" value="{{ filter_qty_min }}" />{% endif %}
-            {% if filter_rating and filter_rating != 'any' %}<input type="hidden" name="rating" value="{{ filter_rating }}" />{% endif %}
-            {% if filter_coa_only %}<input type="hidden" name="coa_only" value="1" />{% endif %}
-            <label for="shop-sort">Sort by</label>
-            <select id="shop-sort" name="sort" onchange="this.form.submit()">
-              <option value="newest" {% if filter_sort == 'newest' or not filter_sort %}selected{% endif %}>Newest</option>
-              <option value="price_asc" {% if filter_sort == 'price_asc' %}selected{% endif %}>Price (low to high)</option>
-              <option value="price_desc" {% if filter_sort == 'price_desc' %}selected{% endif %}>Price (high to low)</option>
-              <option value="qty_desc" {% if filter_sort == 'qty_desc' %}selected{% endif %}>Quantity available</option>
-              <option value="rating_desc" {% if filter_sort == 'rating_desc' %}selected{% endif %}>Highest rated</option>
-            </select>
-          </form>
-        </div>
-
-        <p class="shop-results-count">{{ listings|length }} listing{% if listings|length != 1 %}s{% endif %}</p>
-
-        {% if listings %}
-          {% include "marketplace/_buy_now_cards.html" %}
-        {% else %}
-          <div class="shop-empty">
-            <p>No listings match your filters</p>
-            <a href="{{ url_for('marketplace', mode='buy_now') }}">Clear filters</a>
-          </div>
-        {% endif %}
-
-        {% include "marketplace/_intro_request_modal.html" %}
-        {% include "marketplace/_purchase_modal.html" %}
+    {% if listings %}
+      {% include "marketplace/_buy_now_cards.html" %}
+    {% else %}
+      <div class="sn-empty">
+        <p>No listings available right now.</p>
       </div>
-    </div>
+    {% endif %}
+
+    {% include "marketplace/_intro_request_modal.html" %}
+    {% include "marketplace/_purchase_modal.html" %}
   {% endif %}
 
   <script>
@@ -273,11 +230,6 @@
       purchaseDialog.addEventListener("click", function (e) {
         if (e.target === purchaseDialog) closePurchaseDialog();
       });
-    }
-
-    if (window.matchMedia("(min-width: 900px)").matches) {
-      var mobile = document.querySelector(".shop-sidebar__mobile");
-      if (mobile) mobile.setAttribute("open", "");
     }
   })();
   </script>

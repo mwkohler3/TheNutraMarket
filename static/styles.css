@@ -4926,3 +4926,154 @@ html {
     grid-template-columns: 1fr;
   }
 }
+
+/* —— SportsNutrition-style ingredient listings —— */
+.sn-hero {
+  text-align: center;
+  padding: 2rem 1rem 2.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.sn-hero__eyebrow {
+  margin: 0 0 0.75rem;
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--wb-blue);
+}
+
+.sn-hero__title {
+  margin: 0 auto 1rem;
+  max-width: 42rem;
+  font-size: clamp(1.75rem, 4vw, 2.5rem);
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  line-height: 1.15;
+  color: var(--wb-black);
+}
+
+.sn-hero__lead {
+  margin: 0 auto 0.75rem;
+  max-width: 38rem;
+  font-size: 1.05rem;
+  line-height: 1.6;
+  color: var(--wb-text-muted);
+}
+
+.sn-hero__meta {
+  margin: 0;
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: var(--wb-text-muted);
+}
+
+.sn-section {
+  margin-bottom: 3rem;
+}
+
+.sn-section__title {
+  margin: 0 0 0.35rem;
+  font-size: 1.35rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  color: var(--wb-black);
+}
+
+.sn-section__lead {
+  margin: 0 0 1.5rem;
+  font-size: 0.95rem;
+  color: var(--wb-text-muted);
+}
+
+.sn-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1.25rem;
+}
+
+.sn-card {
+  background: #fff;
+  border: 1px solid #e8e8e8;
+  border-radius: 8px;
+  padding: 1.35rem 1.25rem 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04);
+}
+
+.sn-card--featured {
+  border-color: #dceaf4;
+}
+
+.sn-card__badge {
+  margin: 0;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--wb-blue-darker);
+}
+
+.sn-card__title {
+  margin: 0;
+  font-size: 1.05rem;
+  font-weight: 700;
+  line-height: 1.35;
+  color: var(--wb-black);
+}
+
+.sn-card__desc {
+  margin: 0;
+  flex: 1;
+  font-size: 0.92rem;
+  line-height: 1.55;
+  color: #444;
+}
+
+.sn-card__category {
+  margin: 0;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--wb-text-muted);
+}
+
+.sn-card__inquire {
+  margin-top: 0.35rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  padding: 0.65rem 1rem;
+  border: 0;
+  border-radius: 6px;
+  background: var(--wb-blue);
+  color: #fff;
+  font-family: inherit;
+  font-size: 0.88rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.sn-card__inquire:hover {
+  background: var(--wb-blue-dark);
+}
+
+.sn-empty {
+  text-align: center;
+  padding: 3rem 1rem;
+  color: var(--wb-text-muted);
+}
+
+@media (max-width: 1024px) {
+  .sn-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 640px) {
+  .sn-grid {
+    grid-template-columns: 1fr;
+  }
+}
