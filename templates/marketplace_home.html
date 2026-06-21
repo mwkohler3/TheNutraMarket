@@ -55,7 +55,7 @@
   {% else %}
     <section class="shop-page-head">
       <h1>Ingredient listings</h1>
-      <p class="shop-page-head__lead">Flat-rate inventory from verified suppliers — filter, sort, and buy directly.</p>
+      <p class="shop-page-head__lead">Verified inventory from National Chemical — inquire for pricing and pay through the platform so every deal stays on {{ site_name }}.</p>
     </section>
 
     <section class="wb-mode-tabs" aria-label="Browse mode">
@@ -118,6 +118,7 @@
         {% endif %}
 
         {% include "marketplace/_intro_request_modal.html" %}
+        {% include "marketplace/_purchase_modal.html" %}
       </div>
     </div>
   {% endif %}
@@ -224,6 +225,53 @@
               introError.hidden = false;
             }
           });
+      });
+    }
+
+    var purchaseDialog = document.getElementById("purchase-flow");
+    var purchaseForm = document.getElementById("purchase-form");
+    var purchaseListingLabel = document.getElementById("purchase-listing-label");
+    var purchaseSupplierRef = document.getElementById("purchase-supplier-ref");
+    var purchaseListingId = document.getElementById("purchase-listing-id");
+    var purchaseFeeNote = document.getElementById("purchase-fee-note");
+    var purchaseTitle = document.getElementById("purchase-dialog-title");
+    var purchaseSubmitBtn = document.getElementById("purchase-submit-btn");
+    var commitmentFee = {{ platform_commitment_fee_usd }};
+
+    function closePurchaseDialog() {
+      if (purchaseDialog && purchaseDialog.open) purchaseDialog.close();
+      if (purchaseForm) purchaseForm.reset();
+    }
+
+    if (purchaseDialog) {
+      document.querySelectorAll("[data-purchase-open]").forEach(function (btn) {
+        btn.addEventListener("click", function () {
+          var ingredient = btn.getAttribute("data-ingredient") || "";
+          var code = btn.getAttribute("data-supplier-code") || "";
+          var listingId = btn.getAttribute("data-listing-id") || "";
+          var onRequest = btn.getAttribute("data-price-on-request") === "1";
+          if (purchaseListingId) purchaseListingId.value = listingId;
+          if (purchaseListingLabel) purchaseListingLabel.textContent = ingredient;
+          if (purchaseSupplierRef) purchaseSupplierRef.textContent = code ? "Supplier reference: " + code : "";
+          if (purchaseTitle) purchaseTitle.textContent = onRequest ? "Inquire & pay commitment fee" : "Buy now — pay through platform";
+          if (purchaseFeeNote) {
+            purchaseFeeNote.hidden = !onRequest;
+            if (onRequest) {
+              purchaseFeeNote.textContent =
+                "A $" + commitmentFee + " platform commitment fee secures your inquiry and keeps the deal on {{ site_name }}.";
+            }
+          }
+          if (purchaseSubmitBtn) {
+            purchaseSubmitBtn.textContent = onRequest ? "Pay $" + commitmentFee + " & submit inquiry" : "Continue to secure checkout";
+          }
+          if (typeof purchaseDialog.showModal === "function") purchaseDialog.showModal();
+        });
+      });
+      purchaseDialog.querySelectorAll("[data-close-purchase]").forEach(function (btn) {
+        btn.addEventListener("click", closePurchaseDialog);
+      });
+      purchaseDialog.addEventListener("click", function (e) {
+        if (e.target === purchaseDialog) closePurchaseDialog();
       });
     }
 

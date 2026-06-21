@@ -238,5 +238,17 @@
     "access_code": "NM-CITFLV",
     "status": "active",
     "started_at": "2026-04-24T10:00:00"
+  },
+  {
+    "id": "821f311a-8629-47ea-80d6-467bf231fa78",
+    "company_name": "National Chemical",
+    "contact_name": "Sales",
+    "contact_email": "max@sportsnutrition.com",
+    "monthly_amount_usd": 0.0,
+    "billing_provider": "manual",
+    "public_supplier_code": "SX-NATCHEM",
+    "access_code": "NM-NATCHEM",
+    "status": "active",
+    "started_at": "2026-06-20T21:16:06"
   }
 ]

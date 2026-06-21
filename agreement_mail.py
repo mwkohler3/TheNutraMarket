@@ -259,3 +259,64 @@ def send_supplier_inquiry_notice(inquiry: dict[str, Any]) -> bool:
     except Exception:
         log.exception("Failed to send supplier inquiry notification email")
         return False
+
+
+def send_marketplace_order_notice(order: dict[str, Any]) -> bool:
+    """Notify platform team when a buyer pays through Stripe checkout."""
+    cfg = _smtp_settings()
+    lines = [
+        "A buyer completed payment through the marketplace checkout.",
+        "",
+        "--- Order ---",
+        f"order_id: {order.get('order_id')}",
+        f"order_type: {order.get('order_type')}",
+        f"order_status: {order.get('order_status')}",
+        f"ingredient: {order.get('ingredient')}",
+        f"quantity: {order.get('quantity')}",
+        f"total_amount: ${float(order.get('total_amount') or 0):,.2f}",
+        f"buyer_name: {order.get('buyer_name')}",
+        f"buyer_company: {order.get('buyer_company')}",
+        f"buyer_email: {order.get('buyer_email')}",
+        f"buyer_phone: {order.get('buyer_phone')}",
+        f"supplier_company: {order.get('supplier_company')}",
+        f"supplier_public_code: {order.get('supplier_public_code')}",
+        f"listing_id: {order.get('listing_id')}",
+        f"created_at: {order.get('created_at')}",
+    ]
+    body = "\n".join(lines)
+    log.info("NEW MARKETPLACE ORDER\n%s", body)
+
+    if not cfg["host"]:
+        log.info("Order email skipped: set SMTP_HOST to deliver to %s.", ", ".join(cfg["to"]))
+        return False
+    if not cfg["from_addr"]:
+        log.warning("Order email skipped: set MAIL_FROM or SMTP_USER.")
+        return False
+
+    subj = f"[Marketplace] Payment received — {order.get('buyer_company', '')} / {order.get('ingredient', '')}"
+    msg = EmailMessage()
+    msg["Subject"] = subj[:998]
+    msg["From"] = cfg["from_addr"]
+    msg["To"] = ", ".join(cfg["to"])
+    msg.set_content(body)
+
+    try:
+        if cfg["use_tls"]:
+            context = ssl.create_default_context()
+            with smtplib.SMTP(cfg["host"], cfg["port"], timeout=30) as smtp:
+                smtp.ehlo()
+                smtp.starttls(context=context)
+                smtp.ehlo()
+                if cfg["user"] and cfg["password"]:
+                    smtp.login(cfg["user"], cfg["password"])
+                smtp.send_message(msg)
+        else:
+            with smtplib.SMTP(cfg["host"], cfg["port"], timeout=30) as smtp:
+                if cfg["user"] and cfg["password"]:
+                    smtp.login(cfg["user"], cfg["password"])
+                smtp.send_message(msg)
+        log.info("Order notification email sent to %s", cfg["to"])
+        return True
+    except Exception:
+        log.exception("Failed to send order notification email")
+        return False

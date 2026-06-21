@@ -16,13 +16,21 @@
       <dl class="trade-dl">
         <div><dt>Order ID</dt><dd>{{ order.order_id[:8] }}…</dd></div>
         <div><dt>Ingredient</dt><dd>{{ order.ingredient }}</dd></div>
-        <div><dt>Quantity</dt><dd>{{ '%.0f'|format(order.quantity) }} kg</dd></div>
+        {% if order.quantity %}<div><dt>Quantity</dt><dd>{{ '%.0f'|format(order.quantity) }} kg</dd></div>{% endif %}
         <div><dt>Total paid</dt><dd>${{ '%.2f'|format(order.total_amount) }}</dd></div>
-        <div><dt>Status</dt><dd>{{ order.order_status }}</dd></div>
-        <div><dt>Supplier code</dt><dd>{{ order.supplier_public_code }}</dd></div>
+        <div><dt>Status</dt><dd>{% if order.order_status == 'commitment_paid' %}Commitment received — our team will confirm pricing{% else %}{{ order.order_status }}{% endif %}</dd></div>
+        <div><dt>Supplier</dt><dd>{{ order.supplier_company or order.supplier_public_code }}</dd></div>
       </dl>
-      <p class="trade-note">TheNutraMarket will coordinate fulfillment. Supplier payout is held until {{ order.payout_release_date }}.</p>
-      <a href="{{ url_for('buyer_account_orders') }}" class="trade-btn trade-btn--primary">View all orders</a>
+      <p class="trade-note">
+        {% if order.order_status == 'commitment_paid' %}
+          Your platform commitment fee is recorded. We will follow up by email with confirmed pricing and next steps.
+        {% else %}
+          TheNutraMarket will coordinate fulfillment. Supplier payout is held until {{ order.payout_release_date }}.
+        {% endif %}
+      </p>
+      {% if current_buyer_account %}
+        <a href="{{ url_for('buyer_account_orders') }}" class="trade-btn trade-btn--primary">View all orders</a>
+      {% endif %}
     </section>
   {% endif %}
 {% endblock %}

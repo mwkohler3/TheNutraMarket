@@ -24,12 +24,15 @@ except ImportError:  # pragma: no cover
     DDGS = None
 
 try:
-    from agreement_mail import send_intro_request_notice, send_supplier_inquiry_notice
+    from agreement_mail import send_intro_request_notice, send_supplier_inquiry_notice, send_marketplace_order_notice
 except ImportError:  # pragma: no cover
     def send_intro_request_notice(commit: dict) -> bool:  # type: ignore[misc]
         return False
 
     def send_supplier_inquiry_notice(inquiry: dict) -> bool:  # type: ignore[misc]
+        return False
+
+    def send_marketplace_order_notice(order: dict) -> bool:  # type: ignore[misc]
         return False
 
 app = Flask(__name__)
@@ -85,6 +88,7 @@ SESSION_ADMIN_AUTH = "marketplace_admin_auth"
 SESSION_BUYER_ACCOUNT_ID = "marketplace_buyer_account_id"
 SESSION_SUPPLIER_ACCOUNT_ID = "marketplace_supplier_account_id"
 PAYOUT_HOLD_DAYS = 14
+PLATFORM_COMMITMENT_FEE_USD = float(os.environ.get("PLATFORM_COMMITMENT_FEE_USD", "250") or 250)
 MARKETPLACE_ADMIN_PASSWORD = os.environ.get("MARKETPLACE_ADMIN_PASSWORD", "").strip()
 PLATFORM_SOURCED_FOLLOWUP_DAYS = 45
 SITE_NAME = "TheNutraMarket"
@@ -663,10 +667,16 @@ def supplier_login_required():
     return None
 
 
-def listing_total_amount(listing: dict) -> float:
+def listing_total_amount(listing: dict, quantity_kg: float | None = None) -> float:
     unit_price = float(listing.get("price_per_kg") or 0)
-    quantity = float(listing.get("quantity_kg") or 0)
+    quantity = float(quantity_kg if quantity_kg is not None else listing.get("quantity_kg") or 0)
     return round(unit_price * quantity, 2)
+
+
+def listing_price_on_request(listing: dict) -> bool:
+    if listing.get("price_on_request") is True:
+        return True
+    return float(listing.get("price_per_kg") or 0) <= 0
 
 
 def payout_release_date_from(created_at: str) -> str:
@@ -691,6 +701,7 @@ def create_order_from_checkout_session(session_obj: dict) -> dict | None:
     metadata = session_obj.get("metadata") or {}
     listing_id = str(metadata.get("listing_id") or "")
     buyer_account_id = str(metadata.get("buyer_account_id") or "")
+    order_type = str(metadata.get("order_type") or "listing_purchase")
     listings = load_marketplace_listings()
     listing = next((x for x in listings if str(x.get("id")) == listing_id), None)
     if not listing:
@@ -698,8 +709,12 @@ def create_order_from_checkout_session(session_obj: dict) -> dict | None:
 
     quantity = float(metadata.get("quantity") or listing.get("quantity_kg") or 0)
     unit_price = float(metadata.get("unit_price") or listing.get("price_per_kg") or 0)
-    total_amount = float(metadata.get("total_amount") or listing_total_amount(listing))
-    buyer = find_buyer_account_by_id(buyer_account_id)
+    total_amount = float(metadata.get("total_amount") or 0)
+    if total_amount <= 0 and order_type == "platform_commitment":
+        total_amount = PLATFORM_COMMITMENT_FEE_USD
+    elif total_amount <= 0:
+        total_amount = listing_total_amount(listing, quantity)
+    buyer = find_buyer_account_by_id(buyer_account_id) if buyer_account_id else None
     buyer_email = str(
         metadata.get("buyer_email")
         or (buyer or {}).get("email")
@@ -710,21 +725,27 @@ def create_order_from_checkout_session(session_obj: dict) -> dict | None:
     order = {
         "order_id": str(uuid.uuid4()),
         "stripe_session_id": session_id,
+        "order_type": order_type,
         "listing_id": listing_id,
         "ingredient": str(listing.get("ingredient") or ""),
         "quantity": quantity,
         "unit_price": unit_price,
         "total_amount": total_amount,
         "buyer_account_id": buyer_account_id,
+        "buyer_name": str(metadata.get("buyer_name") or ""),
+        "buyer_company": str(metadata.get("buyer_company") or ""),
         "buyer_email": buyer_email,
+        "buyer_phone": str(metadata.get("buyer_phone") or ""),
         "supplier_public_code": str(listing.get("supplier_public_code") or ""),
-        "order_status": "paid",
+        "supplier_company": str(listing.get("supplier_company") or ""),
+        "order_status": "commitment_paid" if order_type == "platform_commitment" else "paid",
         "payout_status": "pending",
         "payout_release_date": payout_release_date_from(created_at),
         "created_at": created_at,
     }
     orders.append(order)
     save_marketplace_orders(orders)
+    send_marketplace_order_notice(order)
     return order
 
 
@@ -1642,9 +1663,17 @@ def apply_buy_now_listing_filters(listings: list[dict], args) -> list[dict]:
     if certs:
         out = [x for x in out if any(c in (x.get("certifications") or []) for c in certs)]
     if price_min is not None:
-        out = [x for x in out if float(x.get("price_per_kg") or 0) >= price_min]
+        out = [
+            x
+            for x in out
+            if x.get("price_on_request") or float(x.get("price_per_kg") or 0) >= price_min
+        ]
     if price_max is not None:
-        out = [x for x in out if float(x.get("price_per_kg") or 0) <= price_max]
+        out = [
+            x
+            for x in out
+            if x.get("price_on_request") or float(x.get("price_per_kg") or 0) <= price_max
+        ]
     if qty_min is not None:
         out = [x for x in out if float(x.get("quantity_kg") or 0) >= qty_min]
     if rating_floor == "4":
@@ -1667,15 +1696,16 @@ def sort_buy_now_listings(listings: list[dict], sort_key: str) -> list[dict]:
     key = (sort_key or "newest").strip().lower()
     items = list(listings)
     if key == "price_asc":
-        items.sort(key=lambda x: float(x.get("price_per_kg") or 0))
+        items.sort(key=lambda x: (1 if x.get("price_on_request") else 0, float(x.get("price_per_kg") or 0)))
     elif key == "price_desc":
-        items.sort(key=lambda x: float(x.get("price_per_kg") or 0), reverse=True)
+        items.sort(key=lambda x: (1 if x.get("price_on_request") else 0, -float(x.get("price_per_kg") or 0)))
     elif key == "qty_desc":
         items.sort(key=lambda x: float(x.get("quantity_kg") or 0), reverse=True)
     elif key == "rating_desc":
         items.sort(key=lambda x: float(x.get("supplier_rating_avg") or 0), reverse=True)
     else:
         items.sort(key=lambda x: x.get("created_at", ""), reverse=True)
+    items.sort(key=lambda x: 0 if x.get("featured") else 1)
     return items
 
 
@@ -1744,15 +1774,26 @@ def listings_for_marketplace_view(sale_mode: str | None = None) -> list[dict]:
             item["price_display"] = f"${current:,.2f}/{unit if unit != 'kg' else 'kg'}"
             item["time_label"] = item["auction_time_left_label"]
         else:
-            item["price_amount"] = f"${price:,.2f}"
-            item["price_unit_label"] = f"per {unit if unit != 'kg' else 'kg'}"
-            item["price_display"] = f"${price:,.2f}/{unit if unit != 'kg' else 'kg'}"
-            item["total_lot_amount"] = listing_total_amount(listing)
-            item["total_lot_display"] = f"${item['total_lot_amount']:,.2f}"
+            if listing_price_on_request(listing):
+                item["price_amount"] = "Inquire"
+                item["price_unit_label"] = "pricing on request"
+                item["price_display"] = "Inquire for pricing"
+                item["total_lot_amount"] = 0.0
+                item["total_lot_display"] = f"${PLATFORM_COMMITMENT_FEE_USD:,.0f} platform commitment"
+                item["price_on_request"] = True
+            else:
+                item["price_amount"] = f"${price:,.2f}"
+                item["price_unit_label"] = f"per {unit if unit != 'kg' else 'kg'}"
+                item["price_display"] = f"${price:,.2f}/{unit if unit != 'kg' else 'kg'}"
+                item["total_lot_amount"] = listing_total_amount(listing)
+                item["total_lot_display"] = f"${item['total_lot_amount']:,.2f}"
+                item["price_on_request"] = False
             item["time_label"] = item["days_left_label"]
+        item["featured"] = bool(listing.get("featured"))
         out.append(item)
     if sale_mode != "auction":
         out.sort(key=lambda x: x.get("created_at", ""), reverse=True)
+        out.sort(key=lambda x: 0 if x.get("featured") else 1)
     else:
         out.sort(key=lambda x: str(x.get("ingredient") or "").lower())
     return out
@@ -2053,6 +2094,7 @@ def inject_form_choices() -> dict:
         "stripe_checkout_enabled": STRIPE_CHECKOUT_ENABLED,
         "stripe_buyer_checkout_enabled": STRIPE_BUYER_CHECKOUT_ENABLED,
         "stripe_publishable_key": STRIPE_PUBLISHABLE_KEY,
+        "platform_commitment_fee_usd": int(PLATFORM_COMMITMENT_FEE_USD),
         "current_buyer_account": current_buyer_account(),
         "current_supplier_account": current_supplier_account(),
         "site_name": SITE_NAME,
@@ -2663,54 +2705,85 @@ def stripe_webhook():
         raw = obj.to_dict() if hasattr(obj, "to_dict") else (obj if isinstance(obj, dict) else {})
         if isinstance(raw, dict):
             metadata = raw.get("metadata") or {}
-            if metadata.get("order_type") == "listing_purchase":
+            if metadata.get("order_type") in ("listing_purchase", "platform_commitment"):
                 create_order_from_checkout_session(raw)
     return jsonify({"received": True})
 
 
 @app.route("/marketplace/checkout/begin", methods=["POST"])
 def marketplace_checkout_begin():
-    buyer = buyer_login_required()
-    if not buyer:
-        session["post_login_redirect"] = request.referrer or url_for("marketplace", mode="buy_now")
-        return redirect(url_for("marketplace_account_login", role="buyer"))
-
+    buyer = current_buyer_account()
     listing_id = request.form.get("listing_id", "").strip()
+    buyer_name = request.form.get("buyer_name", "").strip()
+    buyer_company = request.form.get("buyer_company", "").strip()
+    buyer_email = request.form.get("buyer_contact_email", "").strip() or str((buyer or {}).get("email") or "")
+    buyer_phone = request.form.get("buyer_phone", "").strip()
+    quantity_raw = request.form.get("quantity_kg", "").strip()
+
     listings = load_marketplace_listings()
     listing = next((x for x in listings if str(x.get("id")) == listing_id), None)
     if not listing or listing_sale_mode(listing) != "buy_now":
         flash("That listing is not available for direct purchase.", "error")
         return redirect(url_for("marketplace", mode="buy_now"))
 
+    if not buyer_email or not buyer_name or not buyer_company or not buyer_phone:
+        flash("Name, company, email, and phone are required to checkout.", "error")
+        return redirect(url_for("marketplace", mode="buy_now", listing=listing_id))
+
     if not STRIPE_BUYER_CHECKOUT_ENABLED or stripe is None:
         flash("Card checkout is not configured yet. Contact support or use Request intro.", "error")
         return redirect(url_for("marketplace", mode="buy_now", listing=listing_id))
 
-    quantity = float(listing.get("quantity_kg") or 0)
-    unit_price = float(listing.get("price_per_kg") or 0)
-    total_amount = listing_total_amount(listing)
+    on_request = listing_price_on_request(listing)
+    max_qty = float(listing.get("quantity_kg") or 0)
+    if on_request:
+        quantity = _num_or_none(quantity_raw) or 0.0
+        if quantity <= 0:
+            flash("Enter the quantity (kg) you want to purchase.", "error")
+            return redirect(url_for("marketplace", mode="buy_now", listing=listing_id))
+        unit_price = 0.0
+        total_amount = PLATFORM_COMMITMENT_FEE_USD
+        order_type = "platform_commitment"
+        line_name = f"Inquiry commitment — {listing.get('ingredient', '')}"[:500]
+        line_desc = (
+            f"{quantity:,.0f} kg requested · ${PLATFORM_COMMITMENT_FEE_USD:,.0f} platform commitment fee · "
+            f"supplier {listing.get('supplier_public_code', '')}"
+        )[:500]
+    else:
+        quantity = _num_or_none(quantity_raw) or max_qty
+        if quantity <= 0:
+            flash("Enter a valid quantity.", "error")
+            return redirect(url_for("marketplace", mode="buy_now", listing=listing_id))
+        if max_qty > 0 and quantity > max_qty:
+            flash(f"Maximum available quantity is {max_qty:,.0f} kg.", "error")
+            return redirect(url_for("marketplace", mode="buy_now", listing=listing_id))
+        unit_price = float(listing.get("price_per_kg") or 0)
+        total_amount = listing_total_amount(listing, quantity)
+        order_type = "listing_purchase"
+        unit = str(listing.get("unit") or "kg")
+        line_name = str(listing.get("ingredient") or "Ingredient lot")[:500]
+        line_desc = (
+            f"{quantity:,.0f} {unit} @ ${unit_price:,.2f}/{unit} — "
+            f"supplier {listing.get('supplier_public_code', '')}"
+        )[:500]
+
     if total_amount <= 0:
         flash("Listing price is invalid for checkout.", "error")
         return redirect(url_for("marketplace", mode="buy_now"))
 
     stripe.api_key = STRIPE_SECRET_KEY
     base = request.host_url.rstrip("/")
-    unit = str(listing.get("unit") or "kg")
-    ingredient = str(listing.get("ingredient") or "Ingredient lot")
     try:
         checkout_session = stripe.checkout.Session.create(
             mode="payment",
-            customer_email=str(buyer.get("email") or ""),
+            customer_email=buyer_email,
             line_items=[
                 {
                     "price_data": {
                         "currency": "usd",
                         "product_data": {
-                            "name": ingredient[:500],
-                            "description": (
-                                f"{quantity:,.0f} {unit} @ ${unit_price:,.2f}/{unit} — "
-                                f"supplier {listing.get('supplier_public_code', '')}"
-                            )[:500],
+                            "name": line_name,
+                            "description": line_desc,
                         },
                         "unit_amount": int(round(total_amount * 100)),
                     },
@@ -2718,10 +2791,13 @@ def marketplace_checkout_begin():
                 }
             ],
             metadata={
-                "order_type": "listing_purchase",
+                "order_type": order_type,
                 "listing_id": listing_id,
-                "buyer_account_id": str(buyer.get("id") or ""),
-                "buyer_email": str(buyer.get("email") or ""),
+                "buyer_account_id": str((buyer or {}).get("id") or ""),
+                "buyer_email": buyer_email,
+                "buyer_name": buyer_name[:500],
+                "buyer_company": buyer_company[:500],
+                "buyer_phone": buyer_phone[:500],
                 "quantity": str(quantity),
                 "unit_price": str(unit_price),
                 "total_amount": str(total_amount),

@@ -1,0 +1,30 @@
+<dialog class="wb-intro-dialog" id="purchase-flow">
+  <div class="wb-intro-dialog__inner">
+    <button type="button" class="wb-bid-dialog__close" aria-label="Close" data-close-purchase>&times;</button>
+
+    <h2 id="purchase-dialog-title">Pay through platform</h2>
+    <p class="wb-panel__lead" id="purchase-listing-label"></p>
+    <p class="wb-intro-supplier-ref" id="purchase-supplier-ref"></p>
+    <p class="wb-purchase-fee-note" id="purchase-fee-note">
+      A ${{ platform_commitment_fee_usd }} platform commitment fee secures your inquiry and keeps the deal on {{ site_name }}.
+    </p>
+
+    {% if not stripe_buyer_checkout_enabled %}
+      <p class="wb-intro-error" role="alert">Card checkout is not configured yet. Use Request intro or contact support.</p>
+    {% else %}
+      <form method="post" action="{{ url_for('marketplace_checkout_begin') }}" class="wb-form" id="purchase-form">
+        <input type="hidden" name="listing_id" id="purchase-listing-id" value="" />
+        <label>Quantity (kg)<input type="number" step="0.01" min="0" name="quantity_kg" id="purchase-quantity" required placeholder="e.g. 500" /></label>
+        <label>Your name<input type="text" name="buyer_name" required autocomplete="name" value="{{ current_buyer_account.contact_name if current_buyer_account else '' }}" /></label>
+        <label>Company<input type="text" name="buyer_company" required autocomplete="organization" value="{{ current_buyer_account.company_name if current_buyer_account else '' }}" /></label>
+        <label>Email<input type="email" name="buyer_contact_email" required autocomplete="email" value="{{ current_buyer_account.email if current_buyer_account else '' }}" /></label>
+        <label>Phone<input type="tel" name="buyer_phone" required autocomplete="tel" value="{{ current_buyer_account.phone if current_buyer_account else '' }}" /></label>
+        <label class="wb-check">
+          <input type="checkbox" name="ack_payment" value="yes" required />
+          I understand payment is collected through {{ site_name }} and final pricing will be confirmed by our team.
+        </label>
+        <button type="submit" class="shop-btn shop-btn--primary" id="purchase-submit-btn">Continue to secure checkout</button>
+      </form>
+    {% endif %}
+  </div>
+</dialog>

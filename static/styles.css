@@ -3894,6 +3894,7 @@ html {
 }
 
 .shop-card {
+  position: relative;
   background: var(--shop-surface);
   border: 1px solid var(--shop-border);
   border-radius: var(--shop-radius);
@@ -4130,6 +4131,43 @@ html {
 
 .shop-card__cta--intro:hover {
   background: #f3f2ef;
+}
+
+.shop-card--featured {
+  border-color: var(--shop-accent);
+  box-shadow: 0 0 0 1px rgba(61, 111, 143, 0.12);
+}
+
+.shop-card__featured-badge {
+  position: absolute;
+  top: 0.65rem;
+  left: 0.65rem;
+  z-index: 2;
+  padding: 0.2rem 0.5rem;
+  border-radius: 999px;
+  background: var(--shop-accent);
+  color: #fff;
+  font-size: 0.62rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.shop-card__price--inquire {
+  font-size: 1.15rem;
+}
+
+.shop-card__price--inquire span {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--shop-muted);
+}
+
+.wb-purchase-fee-note {
+  margin: 0 0 1rem;
+  font-size: 0.88rem;
+  color: var(--wb-text-muted, #4a5568);
+  line-height: 1.5;
 }
 
 .shop-card__cta--buy {

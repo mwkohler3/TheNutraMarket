@@ -1,9 +1,12 @@
 <div class="shop-grid">
   {% for listing in listings %}
     <article
-      class="shop-card{% if prefill_listing_id == listing.id %} shop-card--selected{% endif %}"
+      class="shop-card{% if prefill_listing_id == listing.id %} shop-card--selected{% endif %}{% if listing.featured %} shop-card--featured{% endif %}"
       data-taxonomy="{{ listing.ingredient_taxonomy }}"
     >
+      {% if listing.featured %}
+        <span class="shop-card__featured-badge">Featured</span>
+      {% endif %}
       {% include "marketplace/_shop_card_visual.html" %}
 
       <div class="shop-card__head">
@@ -12,8 +15,13 @@
       </div>
 
       <div class="shop-card__price-row">
-        <p class="shop-card__price">{{ listing.price_amount }}<span>/{{ listing.unit if listing.unit != 'kg' else 'kg' }}</span></p>
-        <p class="shop-card__lot-total">Lot total {{ listing.total_lot_display }}</p>
+        {% if listing.price_on_request %}
+          <p class="shop-card__price shop-card__price--inquire">Inquire<span> for pricing</span></p>
+          <p class="shop-card__lot-total">${{ platform_commitment_fee_usd }} platform commitment to start</p>
+        {% else %}
+          <p class="shop-card__price">{{ listing.price_amount }}<span>/{{ listing.unit if listing.unit != 'kg' else 'kg' }}</span></p>
+          <p class="shop-card__lot-total">Lot total {{ listing.total_lot_display }}</p>
+        {% endif %}
         {% if listing.price_tier_chips %}
           <div class="shop-card__tiers">
             {% for chip in listing.price_tier_chips %}
@@ -45,10 +53,17 @@
       </div>
 
       <div class="shop-card__actions">
-        <form method="post" action="{{ url_for('marketplace_checkout_begin') }}">
-          <input type="hidden" name="listing_id" value="{{ listing.id }}" />
-          <button type="submit" class="shop-card__cta shop-card__cta--buy">Buy now</button>
-        </form>
+        {% if stripe_buyer_checkout_enabled %}
+          <button
+            type="button"
+            class="shop-card__cta shop-card__cta--buy"
+            data-purchase-open
+            data-listing-id="{{ listing.id }}"
+            data-ingredient="{{ listing.ingredient }}"
+            data-supplier-code="{{ listing.supplier_public_code }}"
+            data-price-on-request="{{ '1' if listing.price_on_request else '0' }}"
+          >{% if listing.price_on_request %}Inquire &amp; pay{% else %}Buy now — pay{% endif %}</button>
+        {% endif %}
         <button
           type="button"
           class="shop-card__cta shop-card__cta--intro"
