@@ -3,9 +3,9 @@
 
 {% block marketplace_body %}
   <section class="trade-page-head trade-page-head--center">
-    <h1>Payment received</h1>
+    <h1>Commitment received</h1>
     {% if order %}
-      <p class="trade-page-head__lead">Your order for <strong>{{ order.ingredient }}</strong> is confirmed.</p>
+      <p class="trade-page-head__lead">Your bulk inquiry for <strong>{{ order.ingredient }}</strong> is on file.</p>
     {% else %}
       <p class="trade-page-head__lead">We're confirming your payment. Refresh in a moment or check <a href="{{ url_for('buyer_account_orders') }}">order history</a>.</p>
     {% endif %}
@@ -17,13 +17,14 @@
         <div><dt>Order ID</dt><dd>{{ order.order_id[:8] }}…</dd></div>
         <div><dt>Ingredient</dt><dd>{{ order.ingredient }}</dd></div>
         {% if order.quantity %}<div><dt>Quantity</dt><dd>{{ '%.0f'|format(order.quantity) }} kg</dd></div>{% endif %}
-        <div><dt>Total paid</dt><dd>${{ '%.2f'|format(order.total_amount) }}</dd></div>
-        <div><dt>Status</dt><dd>{% if order.order_status == 'commitment_paid' %}Commitment received — our team will confirm pricing{% else %}{{ order.order_status }}{% endif %}</dd></div>
+        <div><dt>Commitment paid</dt><dd>${{ '%.2f'|format(order.total_amount) }}</dd></div>
+        <div><dt>Status</dt><dd>{% if order.order_status == 'commitment_paid' %}Inquiry received — pricing pending{% else %}{{ order.order_status }}{% endif %}</dd></div>
         <div><dt>Supplier</dt><dd>{{ order.supplier_company or order.supplier_public_code }}</dd></div>
       </dl>
       <p class="trade-note">
         {% if order.order_status == 'commitment_paid' %}
-          Your platform commitment fee is recorded. We will follow up by email with confirmed pricing and next steps.
+          Our team will email you with quoted pricing for your requested volume. Bulk settlement is typically by
+          invoice, wire, or ACH once terms are agreed — not through this card charge.
         {% else %}
           TheNutraMarket will coordinate fulfillment. Supplier payout is held until {{ order.payout_release_date }}.
         {% endif %}

@@ -11,7 +11,18 @@ Payments are already built into the app. Configure Stripe + Railway to turn them
 5. Stripe webhook fires → order saved to `data/marketplace_orders.json`
 6. You get an email alert (if SMTP is configured)
 
-**National Chemical listings** use “pricing on request.” Buyers pay a **platform commitment fee** (default **$250**, set via `PLATFORM_COMMITMENT_FEE_USD`) so deals stay on-platform before final pricing.
+**National Chemical listings** use pricing on request. Buyers pay a **commitment fee** (default **$250**) via card to reserve the inquiry. **The full bulk lot is quoted separately** — typically settled by invoice, wire, or ACH after your team confirms terms.
+
+### B2B bulk payment model
+
+| Step | What happens |
+|------|----------------|
+| 1. Inquire | Buyer pays commitment fee on Stripe (keeps deal on-platform) |
+| 2. Quote | Your team emails volume pricing (per kg, MOQ, delivery) |
+| 3. Settle | Buyer pays balance via wire, ACH, or invoice — not card for the full lot |
+| 4. Fulfill | Supplier ships; you capture brokerage per your terms |
+
+Stripe fits step 1. Steps 3–4 are standard B2B and avoid card limits and fees on large deals.
 
 ---
 

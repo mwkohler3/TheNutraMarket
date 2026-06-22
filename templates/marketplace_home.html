@@ -57,8 +57,8 @@
       <p class="sn-hero__eyebrow">Live Now</p>
       <h1 class="sn-hero__title">The Live Marketplace for Supplement Ingredients</h1>
       <p class="sn-hero__lead">
-        Where verified suppliers list real inventory and brands discover deals — in real time.
-        The fastest way to source premium ingredients at competitive prices.
+        B2B bulk ingredient sourcing from verified suppliers. Inquire on any lot — our team quotes volume pricing;
+        large orders are typically settled by invoice, wire, or ACH after terms are agreed.
       </p>
       <p class="sn-hero__meta">{{ listings|length }} active listings · Updated daily</p>
     </section>
@@ -209,17 +209,15 @@
           var onRequest = btn.getAttribute("data-price-on-request") === "1";
           if (purchaseListingId) purchaseListingId.value = listingId;
           if (purchaseListingLabel) purchaseListingLabel.textContent = ingredient;
-          if (purchaseSupplierRef) purchaseSupplierRef.textContent = code ? "Supplier reference: " + code : "";
-          if (purchaseTitle) purchaseTitle.textContent = onRequest ? "Inquire & pay commitment fee" : "Buy now — pay through platform";
+          if (purchaseTitle) purchaseTitle.textContent = "Submit bulk inquiry";
           if (purchaseFeeNote) {
-            purchaseFeeNote.hidden = !onRequest;
-            if (onRequest) {
-              purchaseFeeNote.textContent =
-                "A $" + commitmentFee + " platform commitment fee secures your inquiry and keeps the deal on {{ site_name }}.";
-            }
+            purchaseFeeNote.hidden = false;
+            purchaseFeeNote.textContent =
+              "B2B deals are quoted by our team. A $" + commitmentFee +
+              " commitment fee (card) reserves your inquiry on {{ site_name }} — the full lot is not charged at checkout.";
           }
           if (purchaseSubmitBtn) {
-            purchaseSubmitBtn.textContent = onRequest ? "Pay $" + commitmentFee + " & submit inquiry" : "Continue to secure checkout";
+            purchaseSubmitBtn.textContent = "Pay $" + commitmentFee + " commitment & submit inquiry";
           }
           if (typeof purchaseDialog.showModal === "function") purchaseDialog.showModal();
         });
