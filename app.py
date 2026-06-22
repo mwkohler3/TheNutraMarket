@@ -95,6 +95,13 @@ SITE_NAME = "TheNutraMarket"
 SITE_TAGLINE = "Instant inventory marketplace for sports nutrition"
 SITE_LEGAL_NAME = os.environ.get("SITE_LEGAL_NAME", "TheNutraMarket.com")
 SITE_URL = os.environ.get("SITE_URL", "https://www.TheNutraMarket.com").rstrip("/")
+PUBLIC_APP_URL = (
+    os.environ.get("PUBLIC_APP_URL", "").strip()
+    or os.environ.get("RAILWAY_PUBLIC_DOMAIN", "").strip()
+    or SITE_URL
+).rstrip("/")
+if PUBLIC_APP_URL and not PUBLIC_APP_URL.startswith("http"):
+    PUBLIC_APP_URL = f"https://{PUBLIC_APP_URL}"
 CANONICAL_HOST = os.environ.get("CANONICAL_HOST", "www.thenutramarket.com").strip().lower()
 CANONICAL_HOST_REDIRECT = os.environ.get("CANONICAL_HOST_REDIRECT", "1").strip().lower() in ("1", "true", "yes")
 MARKETPLACE_DEMO_ACCESS_CODE = os.environ.get("MARKETPLACE_DEMO_ACCESS_CODE", "NM-DEMO").strip().upper()
@@ -221,6 +228,21 @@ STRIPE_SUPPLIER_PRICE_ID = os.environ.get("STRIPE_SUPPLIER_PRICE_ID", "").strip(
 STRIPE_WEBHOOK_SECRET = os.environ.get("STRIPE_WEBHOOK_SECRET", "").strip()
 STRIPE_CHECKOUT_ENABLED = bool(stripe and STRIPE_SECRET_KEY and STRIPE_SUPPLIER_PRICE_ID)
 STRIPE_BUYER_CHECKOUT_ENABLED = bool(stripe and STRIPE_SECRET_KEY)
+
+
+def stripe_payment_status() -> dict:
+    return {
+        "buyer_checkout_enabled": STRIPE_BUYER_CHECKOUT_ENABLED,
+        "secret_configured": bool(STRIPE_SECRET_KEY),
+        "webhook_configured": bool(STRIPE_WEBHOOK_SECRET),
+        "public_app_url": PUBLIC_APP_URL,
+        "webhook_url": f"{PUBLIC_APP_URL}/marketplace/stripe-webhook",
+        "commitment_fee_usd": PLATFORM_COMMITMENT_FEE_USD,
+    }
+
+
+def checkout_base_url() -> str:
+    return PUBLIC_APP_URL or SITE_URL
 WEDGE_PRODUCT = SITE_NAME
 WEDGE_PHASE_COPY = SITE_TAGLINE
 DEFAULT_VALUE_PITCH = (
@@ -2101,6 +2123,7 @@ def inject_form_choices() -> dict:
         "stripe_buyer_checkout_enabled": STRIPE_BUYER_CHECKOUT_ENABLED,
         "stripe_publishable_key": STRIPE_PUBLISHABLE_KEY,
         "platform_commitment_fee_usd": int(PLATFORM_COMMITMENT_FEE_USD),
+        "stripe_payment_status": stripe_payment_status(),
         "current_buyer_account": current_buyer_account(),
         "current_supplier_account": current_supplier_account(),
         "site_name": SITE_NAME,
@@ -2471,7 +2494,7 @@ def marketplace_admin_login():
             return redirect(url_for("marketplace_admin_login"))
         if password == MARKETPLACE_ADMIN_PASSWORD:
             session[SESSION_ADMIN_AUTH] = True
-            return redirect(url_for("marketplace_admin_transactions"))
+            return redirect(url_for("marketplace_admin_orders"))
         flash("Invalid admin password.", "error")
     return render_template("marketplace_admin_login.html")
 
@@ -2502,6 +2525,21 @@ def marketplace_admin_transactions():
         unreported_commits=unreported_commits,
         vig_rate_pct=int(MARKETPLACE_VIG_RATE * 100),
         followup_days=PLATFORM_SOURCED_FOLLOWUP_DAYS,
+        admin_nav_active="transactions",
+    )
+
+
+@app.route("/marketplace/admin/orders")
+def marketplace_admin_orders():
+    if not admin_authenticated():
+        return redirect(url_for("marketplace_admin_login"))
+
+    orders = sorted(load_marketplace_orders(), key=lambda o: o.get("created_at", ""), reverse=True)
+    return render_template(
+        "marketplace_admin_orders.html",
+        orders=orders,
+        stripe_status=stripe_payment_status(),
+        admin_nav_active="orders",
     )
 
 
@@ -2735,6 +2773,10 @@ def marketplace_checkout_begin():
         flash("Name, company, email, and phone are required to checkout.", "error")
         return redirect(url_for("marketplace", mode="buy_now", listing=listing_id))
 
+    if request.form.get("ack_payment") != "yes":
+        flash("Please confirm you understand payment is collected through the platform.", "error")
+        return redirect(url_for("marketplace", mode="buy_now", listing=listing_id))
+
     if not STRIPE_BUYER_CHECKOUT_ENABLED or stripe is None:
         flash("Card checkout is not configured yet. Contact support or use Request intro.", "error")
         return redirect(url_for("marketplace", mode="buy_now", listing=listing_id))
@@ -2777,11 +2819,12 @@ def marketplace_checkout_begin():
         return redirect(url_for("marketplace", mode="buy_now"))
 
     stripe.api_key = STRIPE_SECRET_KEY
-    base = request.host_url.rstrip("/")
+    base = checkout_base_url()
     try:
         checkout_session = stripe.checkout.Session.create(
             mode="payment",
             customer_email=buyer_email,
+            payment_method_types=["card"],
             line_items=[
                 {
                     "price_data": {

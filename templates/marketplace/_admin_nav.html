@@ -1,0 +1,4 @@
+<nav class="wb-admin-nav" aria-label="Admin">
+  <a href="{{ url_for('marketplace_admin_orders') }}" class="{% if admin_nav_active == 'orders' %}is-active{% endif %}">Stripe orders</a>
+  <a href="{{ url_for('marketplace_admin_transactions') }}" class="{% if admin_nav_active == 'transactions' %}is-active{% endif %}">Supplier reports</a>
+</nav>

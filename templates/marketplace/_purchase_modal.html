@@ -10,7 +10,10 @@
     </p>
 
     {% if not stripe_buyer_checkout_enabled %}
-      <p class="wb-intro-error" role="alert">Card checkout is not configured yet. Use Request intro or contact support.</p>
+      <p class="wb-intro-error" role="alert">
+        Card checkout is not configured yet. Set <code>STRIPE_SECRET_KEY</code> on Railway
+        (see <code>docs/stripe-payments-setup.md</code>).
+      </p>
     {% else %}
       <form method="post" action="{{ url_for('marketplace_checkout_begin') }}" class="wb-form" id="purchase-form">
         <input type="hidden" name="listing_id" id="purchase-listing-id" value="" />

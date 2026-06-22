@@ -5,10 +5,12 @@
   <section class="wb-page-head wb-page-head--admin">
     <div>
       <h1>Transaction reporting</h1>
-      <p>Manual invoicing view — {{ vig_rate_pct }}% platform fee on reported gross value. No payment processing integrated.</p>
+      <p>Supplier-reported transactions and platform-sourced introductions. Stripe payments are under <a href="{{ url_for('marketplace_admin_orders') }}">Stripe orders</a>.</p>
     </div>
     <a href="{{ url_for('marketplace_admin_logout') }}" class="wb-btn wb-btn--ghost">Sign out</a>
   </section>
+
+  {% include "marketplace/_admin_nav.html" %}
 
   {% if unreported_commits %}
     <section class="wb-panel wb-panel--alert">

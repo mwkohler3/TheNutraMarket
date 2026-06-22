@@ -15,6 +15,23 @@ Payments are already built into the app. Configure Stripe + Railway to turn them
 
 ---
 
+## Quick setup (3 commands)
+
+1. Copy `.env.example` → `.env` and paste your Stripe **test** keys from [dashboard.stripe.com](https://dashboard.stripe.com/test/apikeys)
+2. Register the webhook:
+   ```bash
+   python3 scripts/configure_stripe_webhook.py
+   ```
+3. Push to Railway:
+   ```bash
+   chmod +x scripts/push_stripe_env_to_railway.sh
+   ./scripts/push_stripe_env_to_railway.sh
+   ```
+
+Admin → `/marketplace/admin/login` → **Stripe orders** shows payments and config status.
+
+---
+
 ## 1. Stripe account
 
 1. [dashboard.stripe.com/register](https://dashboard.stripe.com/register)
@@ -43,6 +60,7 @@ STRIPE_SECRET_KEY=sk_test_xxxxxxxx
 STRIPE_PUBLISHABLE_KEY=pk_test_xxxxxxxx
 STRIPE_WEBHOOK_SECRET=whsec_xxxxxxxx
 PLATFORM_COMMITMENT_FEE_USD=250
+PUBLIC_APP_URL=https://thenutramarket.up.railway.app
 ```
 
 **Email alerts when someone pays** (optional but recommended):

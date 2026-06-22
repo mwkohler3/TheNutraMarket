@@ -1,0 +1,63 @@
+{% extends "marketplace_layout.html" %}
+{% block marketplace_title %}Admin — Stripe orders{% endblock %}
+
+{% block marketplace_body %}
+  <section class="wb-page-head wb-page-head--admin">
+    <div>
+      <h1>Stripe payments</h1>
+      <p>Inquiries and purchases collected through platform checkout.</p>
+    </div>
+    <a href="{{ url_for('marketplace_admin_logout') }}" class="wb-btn wb-btn--ghost">Sign out</a>
+  </section>
+
+  {% include "marketplace/_admin_nav.html" %}
+
+  <section class="wb-panel{% if not stripe_status.buyer_checkout_enabled or not stripe_status.webhook_configured %} wb-panel--alert{% endif %}">
+    <h2>Stripe configuration</h2>
+    <ul class="wb-config-list">
+      <li>{% if stripe_status.secret_configured %}✓{% else %}✗{% endif %} Secret key (`STRIPE_SECRET_KEY`)</li>
+      <li>{% if stripe_status.webhook_configured %}✓{% else %}✗{% endif %} Webhook secret (`STRIPE_WEBHOOK_SECRET`)</li>
+      <li>{% if stripe_status.buyer_checkout_enabled %}✓{% else %}✗{% endif %} Buyer checkout enabled</li>
+    </ul>
+    <p class="wb-panel__lead">
+      Webhook URL: <code>{{ stripe_status.webhook_url }}</code><br />
+      Commitment fee: <strong>${{ stripe_status.commitment_fee_usd|int }}</strong> · Setup guide: <code>docs/stripe-payments-setup.md</code>
+    </p>
+  </section>
+
+  <section class="wb-panel">
+    <h2>Orders ({{ orders|length }})</h2>
+    {% if orders %}
+      <div class="wb-table-wrap">
+        <table class="wb-inventory-table">
+          <thead>
+            <tr>
+              <th>Date</th>
+              <th>Buyer</th>
+              <th>Ingredient</th>
+              <th>Qty (kg)</th>
+              <th>Paid</th>
+              <th>Type</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for o in orders %}
+              <tr>
+                <td>{{ (o.created_at or '')[:10] }}</td>
+                <td>{{ o.buyer_company or o.buyer_name }}<br /><span class="wb-muted">{{ o.buyer_email }}</span></td>
+                <td>{{ o.ingredient }}</td>
+                <td>{{ '%.0f'|format(o.quantity) if o.quantity else '—' }}</td>
+                <td><strong>${{ '%.2f'|format(o.total_amount) }}</strong></td>
+                <td>{{ o.order_type or 'listing_purchase' }}</td>
+                <td>{{ o.order_status }}</td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    {% else %}
+      <p class="wb-muted">No payments recorded yet. Complete a test checkout after Stripe is configured.</p>
+    {% endif %}
+  </section>
+{% endblock %}

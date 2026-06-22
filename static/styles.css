@@ -4170,6 +4170,36 @@ html {
   line-height: 1.5;
 }
 
+.wb-admin-nav {
+  display: flex;
+  gap: 1rem;
+  margin-bottom: 1.25rem;
+  padding-bottom: 0.75rem;
+  border-bottom: 1px solid var(--wb-border-light);
+}
+
+.wb-admin-nav a {
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: var(--wb-text-muted);
+  text-decoration: none;
+  padding-bottom: 0.2rem;
+  border-bottom: 2px solid transparent;
+}
+
+.wb-admin-nav a:hover,
+.wb-admin-nav a.is-active {
+  color: var(--wb-black);
+  border-bottom-color: var(--wb-blue);
+}
+
+.wb-config-list {
+  margin: 0 0 0.75rem;
+  padding-left: 1.25rem;
+  font-size: 0.9rem;
+  line-height: 1.6;
+}
+
 .shop-card__cta--buy {
   margin-top: 0;
 }
