@@ -1,0 +1,74 @@
+{% extends "marketplace_layout.html" %}
+{% block marketplace_title %}{{ page_title }}{% endblock %}
+
+{% block marketplace_body %}
+  <section class="wb-legal">
+    <div class="wb-legal__inner">
+      <h1 class="wb-legal__title">{{ page_title }}</h1>
+
+      {% if page_kind == "about" %}
+        <p class="wb-legal__lead">
+          {{ site_name }} is a private B2B marketplace for the sports nutrition industry, connecting qualified
+          buyers — brands, manufacturers, and distributors — with vetted, onboarded ingredient suppliers.
+        </p>
+        <h2>What we do</h2>
+        <p>
+          We give suppliers a professional storefront for bulk ingredients, flavorings, and packaging, and give
+          buyers a single place to source verified inventory. Every supplier is onboarded personally by our team,
+          and every lot must carry a Certificate of Analysis, specification sheet, and full documentation packet
+          before it goes live.
+        </p>
+        <h2>How sourcing works</h2>
+        <p>
+          Buyers inquire on any listing. Our team confirms specifications, quotes volume pricing, and coordinates
+          terms. Large bulk orders are typically settled by invoice, wire, or ACH after both sides agree — the same
+          way the ingredient trade already works, with the convenience of an online catalog.
+        </p>
+        <h2>Live auctions</h2>
+        <p>
+          For overstock, clearance, and time-sensitive lots, suppliers can run live auctions so competitive bidding
+          moves volume quickly. Supplier identity stays protected behind a masked supplier code until commitment.
+        </p>
+        <h2>Contact</h2>
+        <p>
+          Questions or partnership inquiries: <a href="mailto:{{ supplier_onboarding_email }}">{{ supplier_onboarding_email }}</a>.
+        </p>
+
+      {% elif page_kind == "privacy" %}
+        <p class="wb-legal__lead">
+          {{ site_legal_name }} respects your privacy. This policy explains what we collect and how we use it.
+        </p>
+        <h2>Information we collect</h2>
+        <p>
+          When you submit an inquiry, listing request, bid, or ingredient alert, we collect the details you provide —
+          such as your name, company, email, phone, and product interests. We also collect basic usage data to keep
+          the platform secure and working properly.
+        </p>
+        <h2>How we use it</h2>
+        <p>
+          We use your information to respond to inquiries, connect buyers with onboarded suppliers, quote pricing,
+          send requested alerts, and operate the marketplace. When you request an introduction on a listing, you
+          authorize us to share your contact details with the relevant onboarded supplier so you can transact directly.
+        </p>
+        <h2>What we don't do</h2>
+        <p>
+          We do not sell your personal information. We share it only as needed to facilitate the introductions and
+          transactions you request, or as required by law.
+        </p>
+        <h2>Data requests</h2>
+        <p>
+          To access, correct, or delete your information, email
+          <a href="mailto:{{ supplier_onboarding_email }}">{{ supplier_onboarding_email }}</a>.
+        </p>
+
+      {% else %}
+        <p class="wb-legal__lead">
+          These terms govern use of {{ site_legal_name }}. By using the platform you agree to them.
+        </p>
+        {% include "marketplace/_terms_prose.html" %}
+      {% endif %}
+
+      <p class="wb-legal__back"><a href="{{ url_for('marketplace', mode='buy_now') }}">← Back to marketplace</a></p>
+    </div>
+  </section>
+{% endblock %}

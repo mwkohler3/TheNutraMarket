@@ -2130,6 +2130,7 @@ def inject_form_choices() -> dict:
         "site_tagline": SITE_TAGLINE,
         "site_legal_name": SITE_LEGAL_NAME,
         "site_url": SITE_URL,
+        "agreement_version": MARKETPLACE_AGREEMENT_VERSION,
         "canonical_url": f"{SITE_URL}{request.path}" if request.path else SITE_URL,
         "marketplace_has_access": marketplace_has_access(),
         "marketplace_mode": (
@@ -2562,7 +2563,32 @@ def marketplace_deals_page():
 
 @app.route("/marketplace/terms")
 def marketplace_terms():
-    return redirect(url_for("marketplace", mode="buy_now"))
+    return render_template(
+        "marketplace_legal.html",
+        page_title="Terms of Use",
+        page_kind="terms",
+        marketplace_nav_active=None,
+    )
+
+
+@app.route("/marketplace/privacy")
+def marketplace_privacy():
+    return render_template(
+        "marketplace_legal.html",
+        page_title="Privacy Policy",
+        page_kind="privacy",
+        marketplace_nav_active=None,
+    )
+
+
+@app.route("/marketplace/about")
+def marketplace_about():
+    return render_template(
+        "marketplace_legal.html",
+        page_title="About " + SITE_NAME,
+        page_kind="about",
+        marketplace_nav_active=None,
+    )
 
 
 @app.route("/marketplace/chat", methods=["POST"])
@@ -2617,8 +2643,16 @@ def _handle_supplier_inquiry(source: str = "list_inventory") -> object:
     if not listing_types:
         flash("Select at least one product category you plan to list.", "error")
         return redirect(redirect_to)
-    if not documentation:
-        flash("Select at least one documentation type you can provide.", "error")
+    required_docs = {"coa", "spec_sheet", "doc_packet"}
+    missing_docs = required_docs - set(documentation)
+    if missing_docs:
+        doc_labels = {
+            "coa": "Certificate of Analysis (COA)",
+            "spec_sheet": "specification sheet",
+            "doc_packet": "full documentation packet",
+        }
+        missing_labels = ", ".join(doc_labels[d] for d in ("coa", "spec_sheet", "doc_packet") if d in missing_docs)
+        flash(f"To list, confirm you can provide: {missing_labels}.", "error")
         return redirect(redirect_to)
     if not ack:
         flash("Please confirm you understand onboarding requires approval from our team.", "error")

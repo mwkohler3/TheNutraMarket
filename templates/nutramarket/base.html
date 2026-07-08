@@ -71,8 +71,15 @@
           <p class="wb-footer__heading">Sell</p>
           <a href="{{ url_for('marketplace_suppliers') }}">List inventory</a>
         </div>
+        <div>
+          <p class="wb-footer__heading">Company</p>
+          <a href="{{ url_for('marketplace_about') }}">About</a>
+          <a href="{{ url_for('marketplace_privacy') }}">Privacy</a>
+          <a href="{{ url_for('marketplace_terms') }}">Terms</a>
+          <a href="mailto:{{ supplier_onboarding_email }}">Contact</a>
+        </div>
       </div>
-      <p class="wb-footer__copy">© {{ site_legal_name }}. All agreements are between buyers and onboarded suppliers.</p>
+      <p class="wb-footer__copy">© {{ site_legal_name }}. {{ site_name }} facilitates introductions; all agreements are between buyers and onboarded suppliers.</p>
     </footer>
 
     {% include "marketplace/_alert_widget.html" %}

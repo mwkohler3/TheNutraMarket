@@ -187,36 +187,31 @@
 
     var purchaseDialog = document.getElementById("purchase-flow");
     var purchaseForm = document.getElementById("purchase-form");
+    var purchaseInquiryForm = document.getElementById("purchase-inquiry-form");
     var purchaseListingLabel = document.getElementById("purchase-listing-label");
-    var purchaseSupplierRef = document.getElementById("purchase-supplier-ref");
     var purchaseListingId = document.getElementById("purchase-listing-id");
-    var purchaseFeeNote = document.getElementById("purchase-fee-note");
+    var purchaseInquiryListingId = document.getElementById("purchase-inquiry-listing-id");
     var purchaseTitle = document.getElementById("purchase-dialog-title");
     var purchaseSubmitBtn = document.getElementById("purchase-submit-btn");
+    var stripeCheckoutEnabled = {{ 'true' if stripe_buyer_checkout_enabled else 'false' }};
     var commitmentFee = {{ platform_commitment_fee_usd }};
 
     function closePurchaseDialog() {
       if (purchaseDialog && purchaseDialog.open) purchaseDialog.close();
       if (purchaseForm) purchaseForm.reset();
+      if (purchaseInquiryForm) purchaseInquiryForm.reset();
     }
 
     if (purchaseDialog) {
       document.querySelectorAll("[data-purchase-open]").forEach(function (btn) {
         btn.addEventListener("click", function () {
           var ingredient = btn.getAttribute("data-ingredient") || "";
-          var code = btn.getAttribute("data-supplier-code") || "";
           var listingId = btn.getAttribute("data-listing-id") || "";
-          var onRequest = btn.getAttribute("data-price-on-request") === "1";
           if (purchaseListingId) purchaseListingId.value = listingId;
+          if (purchaseInquiryListingId) purchaseInquiryListingId.value = listingId;
           if (purchaseListingLabel) purchaseListingLabel.textContent = ingredient;
           if (purchaseTitle) purchaseTitle.textContent = "Submit bulk inquiry";
-          if (purchaseFeeNote) {
-            purchaseFeeNote.hidden = false;
-            purchaseFeeNote.textContent =
-              "B2B deals are quoted by our team. A $" + commitmentFee +
-              " commitment fee (card) reserves your inquiry on {{ site_name }} — the full lot is not charged at checkout.";
-          }
-          if (purchaseSubmitBtn) {
+          if (stripeCheckoutEnabled && purchaseSubmitBtn) {
             purchaseSubmitBtn.textContent = "Pay $" + commitmentFee + " commitment & submit inquiry";
           }
           if (typeof purchaseDialog.showModal === "function") purchaseDialog.showModal();

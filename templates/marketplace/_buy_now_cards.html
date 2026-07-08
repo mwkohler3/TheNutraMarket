@@ -19,23 +19,28 @@
 {% endmacro %}
 
 {% set featured_listings = listings | selectattr('featured') | list %}
+{% set available_listings = listings | rejectattr('featured') | list %}
 
-<section class="sn-section">
-  <h2 class="sn-section__title">Featured Ingredients</h2>
-  <p class="sn-section__lead">Top picks hand-selected by our team for quality and demand.</p>
-  <div class="sn-grid">
-    {% for listing in featured_listings %}
-      {{ sn_ingredient_card(listing) }}
-    {% endfor %}
-  </div>
-</section>
+{% if featured_listings %}
+  <section class="sn-section">
+    <h2 class="sn-section__title">Featured Ingredients</h2>
+    <p class="sn-section__lead">Top picks hand-selected by our team for quality and demand.</p>
+    <div class="sn-grid">
+      {% for listing in featured_listings %}
+        {{ sn_ingredient_card(listing) }}
+      {% endfor %}
+    </div>
+  </section>
+{% endif %}
 
-<section class="sn-section">
-  <h2 class="sn-section__title">Available Ingredients</h2>
-  <p class="sn-section__lead">Browse available ingredients from verified suppliers worldwide.</p>
-  <div class="sn-grid">
-    {% for listing in listings %}
-      {{ sn_ingredient_card(listing) }}
-    {% endfor %}
-  </div>
-</section>
+{% if available_listings %}
+  <section class="sn-section">
+    <h2 class="sn-section__title">All Ingredients</h2>
+    <p class="sn-section__lead">Browse available ingredients from verified suppliers worldwide.</p>
+    <div class="sn-grid">
+      {% for listing in available_listings %}
+        {{ sn_ingredient_card(listing) }}
+      {% endfor %}
+    </div>
+  </section>
+{% endif %}

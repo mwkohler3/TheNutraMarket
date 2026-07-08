@@ -5,16 +5,27 @@
     <h2 id="purchase-dialog-title">Submit bulk inquiry</h2>
     <p class="wb-panel__lead" id="purchase-listing-label"></p>
     <p class="wb-purchase-fee-note" id="purchase-fee-note">
-      B2B deals are quoted by our team based on volume, specs, and delivery.
-      A refundable ${{ platform_commitment_fee_usd }} commitment fee (card) reserves your inquiry on {{ site_name }}
-      while we confirm pricing — the full lot is not charged at checkout.
+      {% if stripe_buyer_checkout_enabled %}
+        B2B deals are quoted by our team based on volume, specs, and delivery.
+        A refundable ${{ platform_commitment_fee_usd }} commitment fee (card) reserves your inquiry on {{ site_name }}
+        while we confirm pricing — the full lot is not charged at checkout.
+      {% else %}
+        B2B deals are quoted by our team based on volume, specs, and delivery. Submit your inquiry
+        and our team will follow up by email with pricing and next steps.
+      {% endif %}
     </p>
 
     {% if not stripe_buyer_checkout_enabled %}
-      <p class="wb-intro-error" role="alert">
-        Card checkout is not configured yet. Set <code>STRIPE_SECRET_KEY</code> on Railway
-        (see <code>docs/stripe-payments-setup.md</code>).
-      </p>
+      <form method="post" action="{{ url_for('request_marketplace_intro') }}" class="wb-form" id="purchase-inquiry-form">
+        <input type="hidden" name="listing_id" id="purchase-inquiry-listing-id" value="" />
+        <label>Quantity needed (kg)<input type="number" step="0.01" min="0" name="quantity_kg_display" placeholder="e.g. 500" /></label>
+        <label>Your name<input type="text" name="buyer_name" required autocomplete="name" value="{{ current_buyer_account.contact_name if current_buyer_account else '' }}" /></label>
+        <label>Company<input type="text" name="buyer_company" required autocomplete="organization" value="{{ current_buyer_account.company_name if current_buyer_account else '' }}" /></label>
+        <label>Email<input type="email" name="buyer_contact_email" required autocomplete="email" value="{{ current_buyer_account.email if current_buyer_account else '' }}" /></label>
+        <label>Phone<input type="tel" name="buyer_phone" required autocomplete="tel" value="{{ current_buyer_account.phone if current_buyer_account else '' }}" /></label>
+        <label>Notes (specs, timeline, target volume)<textarea name="note" rows="3" placeholder="Tell us about your requirement…"></textarea></label>
+        <button type="submit" class="shop-btn shop-btn--primary">Submit bulk inquiry</button>
+      </form>
     {% else %}
       <form method="post" action="{{ url_for('marketplace_checkout_begin') }}" class="wb-form" id="purchase-form">
         <input type="hidden" name="listing_id" id="purchase-listing-id" value="" />

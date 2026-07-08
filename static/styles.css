@@ -3472,6 +3472,48 @@ html {
   line-height: 1.6;
 }
 
+.wb-legal__inner {
+  max-width: 46rem;
+  margin: 0 auto;
+  padding: 2.5rem 1.25rem 3.5rem;
+}
+
+.wb-legal__title {
+  font-size: 2rem;
+  font-weight: 800;
+  color: var(--wb-black, #111);
+  margin: 0 0 1rem;
+}
+
+.wb-legal__lead {
+  font-size: 1.05rem;
+  color: #333;
+  margin: 0 0 1.75rem;
+}
+
+.wb-legal h2 {
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: var(--wb-black, #111);
+  margin: 1.75rem 0 0.5rem;
+}
+
+.wb-legal p {
+  margin: 0 0 1rem;
+  color: #444;
+}
+
+.wb-legal a {
+  color: var(--wb-accent, #4B9CD3);
+}
+
+.wb-legal__back {
+  margin-top: 2.5rem;
+  padding-top: 1.25rem;
+  border-top: 1px solid #e5e5e5;
+  font-weight: 600;
+}
+
 .wb-dialog {
   border: none;
   border-radius: 4px;

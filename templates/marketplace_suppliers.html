@@ -85,15 +85,14 @@
         </fieldset>
 
         <fieldset class="wb-sell-checkgroup">
-          <legend>Documentation on hand <span class="wb-sell-required">(select all that apply)</span></legend>
-          <p class="wb-sell-checkgroup__hint">At least one is required · COA required before listing goes live</p>
+          <legend>Required documentation <span class="wb-sell-required">(all three required to list)</span></legend>
+          <p class="wb-sell-checkgroup__hint">Every lot must have a COA, specification sheet, and full documentation packet before it can go live.</p>
           <div class="wb-sell-checkgroup__grid">
-            <label class="wb-check"><input type="checkbox" name="documentation" value="coa" /> Certificate of Analysis (COA)</label>
-            <label class="wb-check"><input type="checkbox" name="documentation" value="spec_sheet" /> Specification sheet</label>
-            <label class="wb-check"><input type="checkbox" name="documentation" value="allergen" /> Allergen statement</label>
-            <label class="wb-check"><input type="checkbox" name="documentation" value="origin" /> Country-of-origin documentation</label>
-            <label class="wb-check"><input type="checkbox" name="documentation" value="other" /> Other quality docs</label>
+            <label class="wb-check"><input type="checkbox" name="documentation" value="coa" required /> Certificate of Analysis (COA) <span class="wb-sell-required">*</span></label>
+            <label class="wb-check"><input type="checkbox" name="documentation" value="spec_sheet" required /> Specification sheet <span class="wb-sell-required">*</span></label>
+            <label class="wb-check"><input type="checkbox" name="documentation" value="doc_packet" required /> Full documentation packet <span class="wb-sell-required">*</span></label>
           </div>
+          <p class="wb-sell-checkgroup__hint">Documentation packet includes allergen statement, country-of-origin, and any additional quality/regulatory docs.</p>
         </fieldset>
 
         <fieldset class="wb-sell-checkgroup">
